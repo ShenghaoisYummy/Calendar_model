@@ -9,7 +9,7 @@ from transformers import (
 from peft import get_peft_model
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from src.utils import (
+from fine_tune import (
     setup_model_and_tokenizer,
     setup_lora_config,
     setup_wandb,
