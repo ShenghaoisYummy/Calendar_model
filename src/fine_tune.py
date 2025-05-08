@@ -3,6 +3,9 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import get_peft_model, LoraConfig, TaskType
 import wandb
 from typing import Dict, Any, Optional
+import os
+os.environ["WANDB_API_KEY"] = "your_wandb_api_key"
+
 
 def setup_model_and_tokenizer(
     model_name: str = "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
@@ -61,15 +64,18 @@ def setup_lora_config(
 
 def setup_wandb(
     project_name: str,
-    config: Optional[Dict[str, Any]] = None
+    config: dict = None,
+    api_key: str = None
 ) -> None:
     """
     Setup Weights & Biases logging.
-    
     Args:
         project_name: Name of the W&B project
         config: Configuration dictionary to log
+        api_key: Your wandb API key (optional)
     """
+    if api_key:
+        wandb.login(key=api_key)
     wandb.init(
         project=project_name,
         config=config or {}
