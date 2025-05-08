@@ -5,6 +5,7 @@ import wandb
 from typing import Dict, Any, Optional
 import os
 
+
 def setup_model_and_tokenizer(
     model_name: str = "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
     device: str = "cuda" if torch.cuda.is_available() else "cpu"

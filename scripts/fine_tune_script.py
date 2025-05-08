@@ -34,7 +34,8 @@ def main():
     }
     
     # Setup wandb
-    setup_wandb("tinyllama-finetuning", config)
+    api_key = os.getenv("WANDB_API_KEY")
+    setup_wandb("tinyllama-finetuning", config, api_key)
     
     # Setup model and tokenizer
     model, tokenizer = setup_model_and_tokenizer(config["model_name"])
