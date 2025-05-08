@@ -60,12 +60,12 @@ def main():
         warmup_steps=config["warmup_steps"],
         logging_steps=config["logging_steps"],
         save_steps=config["save_steps"],
-        evaluation_strategy="steps",
+        do_eval=True,
         eval_steps=config["save_steps"], 
         save_total_limit=3,
-        load_best_model_at_end=True,  # Load best model at the end of training
-        metric_for_best_model="eval_loss",  # Use eval_loss to determine best model
-        greater_is_better=False,  # Lower eval_loss is better
+        load_best_model_at_end=True,
+        metric_for_best_model="loss",
+        greater_is_better=False,
         fp16=True,
         report_to="wandb",
     )
