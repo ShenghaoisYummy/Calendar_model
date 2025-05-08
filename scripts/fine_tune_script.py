@@ -1,6 +1,5 @@
 import os
 import torch
-from datasets import load_dataset
 from transformers import (
     TrainingArguments,
     Trainer,
@@ -44,8 +43,9 @@ def main():
     lora_config = setup_lora_config()
     model = get_peft_model(model, lora_config)
     
-    # Prepare dataset
-    train_dataset = prepare_dataset(tokenizer, config["dataset_name"])
+    # Prepare datasets
+    train_dataset = prepare_dataset(tokenizer, config["dataset_name"], split="train", val_size=0.2)
+    val_dataset = prepare_dataset(tokenizer, config["dataset_name"], split="validation", val_size=0.2)
     
     # Setup training arguments
     training_args = TrainingArguments(
@@ -67,6 +67,7 @@ def main():
         model=model,
         args=training_args,
         train_dataset=train_dataset,
+        eval_dataset=val_dataset,
         data_collator=DataCollatorForLanguageModeling(tokenizer, mlm=False),
     )
     
