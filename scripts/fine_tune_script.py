@@ -22,7 +22,7 @@ def main():
     # Training configuration
     config = {
         "model_name": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-        "dataset_name": "/Data/raw/schedule_response_en_50k.csv",  
+        "dataset_name": "data/raw/schedule_response_en_50k.csv",  
         "output_dir": "outputs",
         "num_train_epochs": 3,
         "per_device_train_batch_size": 4,
