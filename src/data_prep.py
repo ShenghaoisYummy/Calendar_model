@@ -19,7 +19,7 @@ def prepare_dataset(tokenizer, file_path: str, split: str = "train", val_size: f
     if split == "train":
         dataset = split_dataset["train"]
     else:
-        dataset = split_dataset["validation"]
+        dataset = split_dataset["test"]
 
     def tokenize_function(examples):
         return tokenizer(

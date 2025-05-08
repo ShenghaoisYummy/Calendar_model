@@ -45,7 +45,7 @@ def main():
     
     # Prepare datasets
     train_dataset = prepare_dataset(tokenizer, config["dataset_name"], split="train", val_size=0.2)
-    val_dataset = prepare_dataset(tokenizer, config["dataset_name"], split="validation", val_size=0.2)
+    val_dataset = prepare_dataset(tokenizer, config["dataset_name"], split="test", val_size=0.2)
     
     # Setup training arguments
     training_args = TrainingArguments(
