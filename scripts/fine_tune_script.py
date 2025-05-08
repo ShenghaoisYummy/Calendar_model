@@ -9,48 +9,20 @@ from transformers import (
 from peft import get_peft_model
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from fine_tune import (
+from src.fine_tune import (
     setup_model_and_tokenizer,
     setup_lora_config,
     setup_wandb,
     save_checkpoint
 )
 
-def prepare_dataset(tokenizer, dataset_name: str, split: str = "train"):
-    """
-    Prepare dataset for training.
-    
-    Args:
-        tokenizer: Tokenizer to use
-        dataset_name: Name of the dataset to load
-        split: Dataset split to use
-        
-    Returns:
-        Dataset: Prepared dataset
-    """
-    dataset = load_dataset(dataset_name, split=split)
-    
-    def tokenize_function(examples):
-        return tokenizer(
-            examples["text"],
-            padding="max_length",
-            truncation=True,
-            max_length=512
-        )
-    
-    tokenized_dataset = dataset.map(
-        tokenize_function,
-        batched=True,
-        remove_columns=dataset.column_names
-    )
-    
-    return tokenized_dataset
+from src.data_prep import prepare_dataset
 
 def main():
     # Training configuration
     config = {
         "model_name": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-        "dataset_name": "your_dataset_name",  # Replace with your dataset
+        "dataset_name": "/Data/raw/schedule_response_en_50k.csv",  
         "output_dir": "outputs",
         "num_train_epochs": 3,
         "per_device_train_batch_size": 4,
