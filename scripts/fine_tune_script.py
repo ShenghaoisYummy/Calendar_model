@@ -3,7 +3,8 @@ import torch
 from transformers import (
     TrainingArguments,
     Trainer,
-    DataCollatorForLanguageModeling
+    DataCollatorForLanguageModeling,
+    EarlyStoppingCallback
 )
 from peft import get_peft_model
 import sys
@@ -30,6 +31,8 @@ def main():
         "warmup_steps": 100,
         "logging_steps": 10,
         "save_steps": 100,
+        "early_stopping_patience": 10,  # Number of evaluations with no improvement
+        "early_stopping_threshold": 0.01,  # Minimum improvement needed to reset patience
     }
     
     # Setup wandb
@@ -57,9 +60,20 @@ def main():
         warmup_steps=config["warmup_steps"],
         logging_steps=config["logging_steps"],
         save_steps=config["save_steps"],
+        evaluation_strategy="steps",
+        eval_steps=config["save_steps"], 
         save_total_limit=3,
+        load_best_model_at_end=True,  # Load best model at the end of training
+        metric_for_best_model="eval_loss",  # Use eval_loss to determine best model
+        greater_is_better=False,  # Lower eval_loss is better
         fp16=True,
         report_to="wandb",
+    )
+    
+    # Create early stopping callback
+    early_stopping_callback = EarlyStoppingCallback(
+        early_stopping_patience=config["early_stopping_patience"],
+        early_stopping_threshold=config["early_stopping_threshold"]
     )
     
     # Setup trainer
@@ -69,6 +83,7 @@ def main():
         train_dataset=train_dataset,
         eval_dataset=val_dataset,
         data_collator=DataCollatorForLanguageModeling(tokenizer, mlm=False),
+        callbacks=[early_stopping_callback],  # Add early stopping callback
     )
     
     # Train
