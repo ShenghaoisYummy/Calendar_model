@@ -4,8 +4,6 @@ from peft import get_peft_model, LoraConfig, TaskType
 import wandb
 from typing import Dict, Any, Optional
 import os
-os.environ["WANDB_API_KEY"] = "your_wandb_api_key"
-
 
 def setup_model_and_tokenizer(
     model_name: str = "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
