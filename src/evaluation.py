@@ -831,7 +831,7 @@ def get_model_predictions(model, tokenizer, prompts: List[str], system_prompt: s
 def get_gpt_predictions(prompts, system_prompt=None, model="gpt-4o-mini"):
     """Generate predictions using GPT for a list of prompts"""
     # Initialize the client
-    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", "your-api-key-here"))
+    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
     
     predictions = []
     
