@@ -6,6 +6,7 @@ with the following exact keys, in this order (no extra text before/after):
 'location', 'isAllDay', 'response'
 • 'date', 'startTime', 'endTime' must be RFC3339/ISO-8601 strings.
 • 'date' must be a valid date.
+• 'date' must be only the date, not the time.
 • If 'endTime' is not provided, predict based on other information.
 • Choose intent from add, delete, edit, query, chat. 
     - For creating a new event use "add".

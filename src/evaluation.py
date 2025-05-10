@@ -330,9 +330,9 @@ class CalendarEventEvaluator:
             'title': 0.10,
             'description': 0.10,
             'date': 0.35,
-            'startTime': 0.30,
-            'endTime': 0.30,
-            'location': 0.30,
+            'startTime': 0.50,
+            'endTime': 0.20,
+            'location': 0.50,
             'intent': 0.50,
             'response': 0.10
         }
