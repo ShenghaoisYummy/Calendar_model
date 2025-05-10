@@ -13,7 +13,6 @@ import argparse
 import json
 import wandb
 import sys
-import openai
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
