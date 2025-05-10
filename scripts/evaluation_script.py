@@ -24,6 +24,36 @@ from src.evaluation import (
 from src.fine_tune import setup_model_and_tokenizer
 from src.constants import DEFAULT_SYSTEM_PROMPT, EVALUATION_DATA_PATH, MODEL_PATH
 
+def print_detailed_results(references, predictions, results):
+    """Print detailed results for each prediction"""
+    print("\nDetailed Results:")
+    print("=" * 80)
+    
+    for i, (ref, pred, event_result) in enumerate(zip(references, predictions, results['event_results'])):
+        print(f"\nSample {i+1}:")
+        print("-" * 40)
+        
+        # Print reference
+        print("Reference:")
+        for field, value in ref.items():
+            if field not in ['_id', '_source']:  # Skip internal fields
+                print(f"  {field}: {value}")
+        
+        # Print prediction
+        print("\nPrediction:")
+        for field, value in pred.items():
+            if field not in ['_id', '_source']:  # Skip internal fields
+                print(f"  {field}: {value}")
+        
+        # Print evaluation scores
+        print("\nEvaluation Scores:")
+        for field, field_result in event_result['fields'].items():
+            if 'overall' in field_result:
+                print(f"  {field}: {field_result['overall']:.3f}")
+        
+        print(f"\nOverall Score: {event_result['overall_score']:.3f}")
+        print("=" * 80)
+
 def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Evaluate fine-tuned calendar event model")
@@ -86,6 +116,9 @@ def main():
     evaluator = CalendarEventEvaluator()
     results = evaluator.evaluate_batch(references, predictions)
     
+    # Print detailed results
+    print_detailed_results(references, predictions, results)
+    
     # Save detailed results
     output_file = os.path.join(args.output_dir, "evaluation_results.json")
     with open(output_file, 'w') as f:
@@ -111,7 +144,7 @@ def main():
             class_names=results["type_confusion_matrix"]["class_names"]
         )})
     
-    print(f"Evaluation complete. Results saved to {output_file}")
+    print(f"\nEvaluation complete. Results saved to {output_file}")
     print(f"Overall score: {results['overall_score']['mean']:.4f}")
 
 if __name__ == "__main__":
