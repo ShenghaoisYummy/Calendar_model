@@ -22,29 +22,18 @@ from src.evaluation import (
     CalendarEventEvaluator
 )
 from src.fine_tune import setup_model_and_tokenizer
-
-# Default system prompt for the model
-DEFAULT_SYSTEM_PROMPT = """You are a scheduling assistant.
-Read the user's request and output **only** a JSON object
-with the following exact keys, in this order (no extra text before/after):
-'title', 'type', 'description', 'date', 'startTime', 'endTime',
-'location', 'isAllDay', 'response'
-• 'date', 'startTime', 'endTime' must be RFC3339/ISO-8601 strings.
-• 'type' ∈ {add, delete, edit, query, chat}. For creating a new event use "add".
-• 'isAllDay' = 1 if the request is an all-day event, else 0.
-• 'response' is how you would politely confirm the action to the user.
-Output NOTHING except that JSON object."""
+from src.constants import DEFAULT_SYSTEM_PROMPT, EVALUATION_DATA_PATH, MODEL_PATH
 
 def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Evaluate fine-tuned calendar event model")
-    parser.add_argument("--model_path", type=str, required=True, help="Path to the fine-tuned model")
-    parser.add_argument("--test_data", type=str, required=True, help="Path to test data file")
+    parser.add_argument("--model_path", type=str, default=MODEL_PATH, help="Path to the fine-tuned model")
+    parser.add_argument("--test_data", type=str, default=EVALUATION_DATA_PATH, help="Path to test data file")
     parser.add_argument("--output_dir", type=str, default="evaluation_results", help="Directory to save evaluation results")
     parser.add_argument("--wandb_project", type=str, default="calendar-model-evaluation", help="W&B project name")
     parser.add_argument("--batch_size", type=int, default=8, help="Batch size for inference")
     parser.add_argument("--max_samples", type=int, default=None, help="Maximum number of test samples to evaluate")
-    parser.add_argument("--system_prompt", type=str, default=None, help="Custom system prompt (or 'none' to disable)")
+    parser.add_argument("--system_prompt", type=str, default=DEFAULT_SYSTEM_PROMPT, help="Custom system prompt (or 'none' to disable)")
     args = parser.parse_args()
     
     # Initialize W&B
