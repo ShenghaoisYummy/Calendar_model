@@ -8,12 +8,7 @@ with the following exact keys, in this order (no extra text before/after):
 • 'date' must be a valid date.
 • 'date' must be only the date, not the time.
 • If 'endTime' is not provided, predict based on other information.
-• Choose intent from add, delete, update, query, chat. 
-    - For creating a new event use "add".
-    - For deleting an event use "delete".
-    - For editing an event use "edit".
-    - For querying an event use "query".
-    - For chatting use "chat".
+• According to the user's request, predict the intent from add, delete, update, query, chat. 
 • 'isAllDay' = 1 if the request is an all-day event, else 0.
 • 'response' is how you would politely confirm the action to the user.
 Output NOTHING except that JSON object."""
