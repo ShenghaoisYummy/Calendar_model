@@ -826,6 +826,34 @@ def get_model_predictions(model, tokenizer, prompts: List[str], system_prompt: s
     
     return predictions
 
+def get_gpt_predictions(prompts, system_prompt=None, model="gpt-3.5-turbo"):
+    """Generate predictions using GPT for a list of prompts"""
+    predictions = []
+    
+    for prompt in prompts:
+        messages = []
+        
+        # Add system prompt if provided
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        
+        # Add user prompt
+        messages.append({"role": "user", "content": prompt})
+        
+        # Get response from GPT
+        response = openai.ChatCompletion.create(
+            model=model,
+            messages=messages,
+            temperature=0,  # Use 0 for more deterministic outputs
+            max_tokens=512
+        )
+        
+        # Extract the response text
+        prediction = response['choices'][0]['message']['content']
+        predictions.append(prediction)
+        
+    return predictions
+
 def process_model_outputs(raw_outputs: List[str]) -> List[Dict[str, Any]]:
     """Process raw model outputs into structured event data"""
     extractor = CalendarEventExtractor()

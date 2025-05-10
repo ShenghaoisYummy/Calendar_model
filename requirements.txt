@@ -16,3 +16,4 @@ trl
 evaluate
 scipy
 emoji>=2.0.0 
+openai

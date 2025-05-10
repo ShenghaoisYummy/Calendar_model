@@ -13,11 +13,14 @@ import argparse
 import json
 import wandb
 import sys
+import openai
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.evaluation import (
     load_data,
     get_model_predictions,
+    get_gpt_predictions,
     process_model_outputs,
     CalendarEventEvaluator
 )
@@ -162,14 +165,23 @@ def main():
     print(f"Loading model from {args.model_path}")
     model, tokenizer = setup_model_and_tokenizer(args.model_path)
     
-    # Generate predictions
-    print("Generating predictions...")
-    raw_outputs = get_model_predictions(
-        model, 
-        tokenizer, 
+    # # Generate predictions
+    # print("Generating predictions...")
+    # raw_outputs = get_model_predictions(
+    #     model, 
+    #     tokenizer, 
+    #     prompts, 
+    #     system_prompt=system_prompt, 
+    #     batch_size=args.batch_size
+    # )
+    # predictions = process_model_outputs(raw_outputs)
+
+    # Generate predictions using GPT
+    print(f"Generating predictions using {args.gpt_model}...")
+    raw_outputs = get_gpt_predictions(
         prompts, 
-        system_prompt=system_prompt, 
-        batch_size=args.batch_size
+        system_prompt=system_prompt,
+        model='gpt-4o-mini'
     )
     predictions = process_model_outputs(raw_outputs)
     
@@ -205,9 +217,11 @@ def main():
             preds=results["intent_confusion_matrix"]["pred_labels"],
             class_names=results["intent_confusion_matrix"]["class_names"]
         )})
-    
+
+    overall_score = results['overall_score']['mean'] * 100
+
     print(f"\nEvaluation complete. Results saved to {output_file}")
-    print(f"Overall score: {results['overall_score']['mean']:.4f}")
+    print(f"Overall score: {overall_score:.4f}")
 
 if __name__ == "__main__":
     main()
