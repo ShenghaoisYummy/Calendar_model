@@ -342,10 +342,10 @@ class CalendarEventEvaluator:
         self.field_weights = {
             'title': 0.10,
             'description': 0.10,
-            'date': 0.35,
+            'date': 0.50,
             'startTime': 0.50,
             'endTime': 0.20,
-            'location': 0.50,
+            'location': 0.40,
             'intent': 0.50,
             'response': 0.10
         }
