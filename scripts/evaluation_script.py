@@ -33,6 +33,12 @@ def print_detailed_results(references, predictions, results):
         print(f"\nSample {i+1}:")
         print("-" * 40)
         
+        # Print reference intent (if available)
+        if 'reference_intent' in event_result:
+            print(f"Reference Intent: {event_result['reference_intent'].upper()}")
+            print("Fields evaluated based on this intent type")
+            print("-" * 40)
+        
         # Print reference
         print("Reference:")
         for field, value in ref.items():
@@ -64,6 +70,19 @@ def print_detailed_results(references, predictions, results):
     print(f"Number of Samples: {results['num_events']}")
     print(f"Overall Score: {results['overall_score']['mean']:.4f} ± {results['overall_score']['std']:.4f}")
     print(f"Completeness: {results['completeness']['mean']:.4f} ± {results['completeness']['std']:.4f}")
+    
+    # Count samples by intent type
+    intent_counts = {}
+    for event_result in results['event_results']:
+        if 'reference_intent' in event_result:
+            intent = event_result['reference_intent']
+            intent_counts[intent] = intent_counts.get(intent, 0) + 1
+    
+    # Print intent type statistics
+    if intent_counts:
+        print("\nSamples by Intent Type:")
+        for intent, count in sorted(intent_counts.items()):
+            print(f"  {intent.upper()}: {count} samples")
     
     # Print field scores
     print("\nField Scores:")

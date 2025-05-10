@@ -600,8 +600,29 @@ class CalendarEventEvaluator:
         # Handle type->intent field mapping in prediction if needed
         if 'type' in prediction and 'intent' not in prediction:
             prediction['intent'] = prediction.pop('type')
+        
+        # Get reference intent (to determine which fields to evaluate)
+        reference_intent = str(reference.get('intent', '')).lower().strip()
+        
+        # Define fields to evaluate based on intent type
+        fields_to_evaluate = set(reference.keys()) | set(prediction.keys())
+        
+        # For CANCEL intent, only evaluate intent, date, startTime, and response
+        if reference_intent == 'cancel':
+            fields_to_evaluate = {'intent', 'date', 'startTime', 'response', 'title'}
             
-        for field in set(reference.keys()) | set(prediction.keys()):
+        # For QUERY intent, only evaluate intent, date, startTime, and response
+        elif reference_intent == 'query':
+            fields_to_evaluate = {'intent', 'date', 'startTime', 'response', 'title'}
+            
+        # For CHITCHAT intent, only evaluate intent and response
+        elif reference_intent == 'chitchat':
+            fields_to_evaluate = {'intent', 'response'}
+        
+        # For ADD or UPDATE intent, evaluate all fields (default behavior)
+        # Also default to all fields if intent is not recognized
+            
+        for field in fields_to_evaluate:
             # Skip internal fields and isAllDay (as specified)
             if field.startswith('_') or field == 'isAllDay':
                 continue
@@ -636,7 +657,11 @@ class CalendarEventEvaluator:
             if field_score is not None and field in self.field_weights:
                 overall_scores.append((field, field_score * self.field_weights[field]))
                 
-        # Calculate completeness
+        # Calculate completeness (based on evaluated fields only)
+        fields_in_prediction = set(prediction.keys()) & fields_to_evaluate
+        fields_in_reference = set(reference.keys()) & fields_to_evaluate
+        available_fields = len(fields_in_prediction)
+        total_fields = len(fields_in_reference)
         completeness = available_fields / total_fields if total_fields > 0 else 0.0
         
         # Calculate overall score
@@ -646,7 +671,8 @@ class CalendarEventEvaluator:
         return {
             'fields': field_scores,
             'completeness': completeness,
-            'overall_score': overall_score
+            'overall_score': overall_score,
+            'reference_intent': reference_intent  # Add reference intent for clarity
         }
         
     def evaluate_batch(self, references: List[Dict[str, Any]], predictions: List[Dict[str, Any]]) -> Dict[str, Any]:
