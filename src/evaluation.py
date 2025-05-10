@@ -99,6 +99,51 @@ class DateTimeUtils:
             return parsed1 == parsed2
         except (ValueError, TypeError):
             return False
+            
+    @staticmethod
+    def convert_to_iso_format(date_str: str, time_str: str = None) -> str:
+        """Convert date and optional time to ISO format"""
+        if not date_str:
+            return ""
+            
+        try:
+            # Handle different date formats
+            date_formats = ["%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%d-%m-%Y", "%m-%d-%Y", "%B %d %Y", "%d %B %Y"]
+            parsed_date = None
+            
+            for fmt in date_formats:
+                try:
+                    parsed_date = datetime.strptime(date_str, fmt)
+                    break
+                except ValueError:
+                    continue
+                    
+            if parsed_date is None:
+                return ""
+                
+            # If time is provided, add it to the datetime
+            if time_str:
+                time_formats = ["%H:%M", "%H:%M:%S", "%I:%M %p", "%I:%M:%S %p"]
+                time_parsed = None
+                
+                for fmt in time_formats:
+                    try:
+                        time_parsed = datetime.strptime(time_str, fmt)
+                        break
+                    except ValueError:
+                        continue
+                        
+                if time_parsed:
+                    parsed_date = parsed_date.replace(
+                        hour=time_parsed.hour,
+                        minute=time_parsed.minute,
+                        second=time_parsed.second
+                    )
+            
+            # Format as ISO
+            return parsed_date.strftime("%Y-%m-%dT%H:%M:%SZ")
+        except Exception:
+            return ""
 
 class TextMetrics:
     """Text similarity metrics for evaluation"""
@@ -116,9 +161,9 @@ class TextMetrics:
         if not self.rouge or not reference or not candidate:
             return 0.0
         
-        # Ensure strings
-        reference = str(reference) if reference else ""
-        candidate = str(candidate) if candidate else ""
+        # Ensure strings and convert to lowercase
+        reference = str(reference).lower().strip() if reference else ""
+        candidate = str(candidate).lower().strip() if candidate else ""
         
         if not reference or not candidate:
             return 0.0
@@ -131,9 +176,9 @@ class TextMetrics:
         if not self.smooth or not reference or not candidate:
             return 0.0
             
-        # Ensure strings
-        reference = str(reference) if reference else ""
-        candidate = str(candidate) if candidate else ""
+        # Ensure strings and convert to lowercase
+        reference = str(reference).lower().strip() if reference else ""
+        candidate = str(candidate).lower().strip() if candidate else ""
         
         if not reference or not candidate:
             return 0.0
@@ -150,9 +195,9 @@ class TextMetrics:
         
     def evaluate_text(self, reference: str, candidate: str) -> Dict[str, float]:
         """Evaluate text using multiple metrics"""
-        # Ensure strings and normalize
-        reference = str(reference).strip().lower() if reference else ""
-        candidate = str(candidate).strip().lower() if candidate else ""
+        # Ensure strings and normalize to lowercase
+        reference = str(reference).lower().strip() if reference else ""
+        candidate = str(candidate).lower().strip() if candidate else ""
         
         # Calculate exact match
         exact_match = 1.0 if reference == candidate else 0.0
@@ -187,7 +232,13 @@ class CalendarEventExtractor:
         if match:
             try:
                 json_text = match.group(1)
-                return json.loads(json_text)
+                result = json.loads(json_text)
+                
+                # Map 'type' to 'intent' if 'type' exists but 'intent' doesn't
+                if 'type' in result and 'intent' not in result:
+                    result['intent'] = result.pop('type')
+                
+                return result
             except json.JSONDecodeError:
                 # If it's not valid JSON, fall back to regex extraction
                 pass
@@ -205,7 +256,7 @@ class CalendarEventExtractor:
         # Define regex patterns for each field
         patterns = {
             'title': r'(?:title|event)[:\s]+([^\n,]+)',
-            'intent': r'(?:intent|type)[:\s]+([^\n,]+)',
+            'intent': r'(?:intent|type)[:\s]+([^\n,]+)',  # Support both intent and type fields
             'description': r'(?:description)[:\s]+([^\n,]+)',
             'date': r'(?:date)[:\s]+([0-9-]+)',
             'startTime': r'(?:startTime|start time|start)[:\s]+([^\n,]+)',
@@ -219,6 +270,10 @@ class CalendarEventExtractor:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 result[field] = match.group(1).strip()
+        
+        # Map 'type' to 'intent' if 'type' exists but 'intent' doesn't
+        if 'type' in result and 'intent' not in result:
+            result['intent'] = result.pop('type')
                 
         return result
 
@@ -252,6 +307,11 @@ class CalendarEventEvaluator:
         
     def evaluate_text_field(self, reference: str, prediction: str) -> Dict[str, float]:
         """Evaluate a text field using Rouge-L and BLEU"""
+        # Force lowercase for all text evaluations
+        if reference:
+            reference = str(reference).lower().strip()
+        if prediction:
+            prediction = str(prediction).lower().strip()
         return self.text_metrics.evaluate_text(reference, prediction)
         
     def evaluate_date_field(self, reference: str, prediction: str) -> Dict[str, float]:
@@ -263,8 +323,16 @@ class CalendarEventEvaluator:
         pred_date = prediction
         
         # Try to extract date from ISO datetime if needed
-        if reference and not self.dt_utils.is_valid_date_format(reference) and self.dt_utils.is_valid_iso_datetime(reference):
-            ref_date = self.dt_utils.extract_date_from_iso(reference)
+        if reference:
+            if self.dt_utils.is_valid_date_format(reference):
+                ref_date = reference
+            elif self.dt_utils.is_valid_iso_datetime(reference):
+                ref_date = self.dt_utils.extract_date_from_iso(reference)
+            else:
+                # Try to convert non-standard format to ISO
+                iso_date = self.dt_utils.convert_to_iso_format(reference)
+                if iso_date:
+                    ref_date = self.dt_utils.extract_date_from_iso(iso_date)
             
         if prediction and not self.dt_utils.is_valid_date_format(prediction) and self.dt_utils.is_valid_iso_datetime(prediction):
             pred_date = self.dt_utils.extract_date_from_iso(prediction)
@@ -289,11 +357,31 @@ class CalendarEventEvaluator:
         """Evaluate a datetime field"""
         valid_format = self.dt_utils.is_valid_iso_datetime(prediction) if prediction else False
         
+        # Normalize reference to ISO format if needed
+        ref_iso = reference
+        if reference and not self.dt_utils.is_valid_iso_datetime(reference):
+            # Try to convert date and time to ISO format
+            ref_date = None
+            ref_time = None
+            
+            # If reference contains both date and time, try to extract them
+            if ' ' in reference:
+                parts = reference.split(' ')
+                for part in parts:
+                    if self.dt_utils.is_valid_date_format(part):
+                        ref_date = part
+                    elif ':' in part:
+                        ref_time = part
+            
+            # If we found potential date/time, convert to ISO
+            if ref_date or ref_time:
+                ref_iso = self.dt_utils.convert_to_iso_format(ref_date or reference, ref_time)
+        
         # Compare the datetime values
-        value_match = self.dt_utils.compare_iso_datetimes(reference, prediction) if (reference and prediction) else False
+        value_match = self.dt_utils.compare_iso_datetimes(ref_iso, prediction) if (ref_iso and prediction) else False
         
         # Check time part separately
-        ref_time = self.dt_utils.extract_time_from_iso(reference) if reference else ""
+        ref_time = self.dt_utils.extract_time_from_iso(ref_iso) if ref_iso else ""
         pred_time = self.dt_utils.extract_time_from_iso(prediction) if prediction else ""
         time_match = ref_time == pred_time
         
@@ -438,6 +526,10 @@ class CalendarEventEvaluator:
         field_scores = {}
         overall_scores = []
         
+        # Handle type->intent field mapping in prediction if needed
+        if 'type' in prediction and 'intent' not in prediction:
+            prediction['intent'] = prediction.pop('type')
+            
         for field in set(reference.keys()) | set(prediction.keys()):
             # Skip internal fields and isAllDay (as specified)
             if field.startswith('_') or field == 'isAllDay':
@@ -502,7 +594,7 @@ class CalendarEventEvaluator:
         completeness_scores = []
         overall_scores = []
         
-        # Also collect type values for confusion matrix
+        # Also collect intent values for confusion matrix
         intent_references = []
         intent_predictions = []
         
@@ -567,6 +659,13 @@ class CalendarEventEvaluator:
                 aggregate_results['intent_confusion_matrix'] = metrics
                 # Store the raw confusion matrix as well
                 aggregate_results['intent_confusion_matrix']['matrix'] = cm.tolist()
+                
+                # Use intent accuracy as the intent field score
+                aggregate_results['field_scores']['intent'] = {
+                    'mean': float(metrics['accuracy']),
+                    'std': 0.0,  # No std dev for a single accuracy value
+                    'count': len(intent_references)
+                }
             
         # Add detailed results
         aggregate_results['event_results'] = event_results

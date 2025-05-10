@@ -5,7 +5,7 @@ with the following exact keys, in this order (no extra text before/after):
 'title', 'type', 'description', 'date', 'startTime', 'endTime',
 'location', 'isAllDay', 'response'
 • 'date', 'startTime', 'endTime' must be RFC3339/ISO-8601 strings.
-• 'type' ∈ {add, delete, edit, query, chat}. For creating a new event use "add".
+• 'intent' ∈ {add, delete, edit, query, chat}. For creating a new event use "add".
 • 'isAllDay' = 1 if the request is an all-day event, else 0.
 • 'response' is how you would politely confirm the action to the user.
 Output NOTHING except that JSON object."""

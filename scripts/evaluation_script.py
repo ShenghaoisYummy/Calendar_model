@@ -68,7 +68,10 @@ def print_detailed_results(references, predictions, results):
     # Print field scores
     print("\nField Scores:")
     for field, metrics in results['field_scores'].items():
-        print(f"  {field}: {metrics['mean']:.4f} ± {metrics['std']:.4f} (n={metrics['count']})")
+        if field == 'intent':
+            print(f"  {field}: {metrics['mean']:.4f} (Accuracy) (n={metrics['count']})")
+        else:
+            print(f"  {field}: {metrics['mean']:.4f} ± {metrics['std']:.4f} (n={metrics['count']})")
     
     # Print confusion matrix if available
     if 'intent_confusion_matrix' in results:
@@ -90,7 +93,8 @@ def print_detailed_results(references, predictions, results):
             print(row)
         
         # Print metrics
-        print(f"\nIntent Classification Accuracy: {results['intent_confusion_matrix']['accuracy']:.4f}")
+        intent_accuracy = results['intent_confusion_matrix']['accuracy']
+        print(f"\nIntent Classification Accuracy: {intent_accuracy:.4f} ** (Used for intent field score)")
         print(f"Intent Classification F1 Score: {results['intent_confusion_matrix']['f1_score']:.4f}")
 
 def main():
