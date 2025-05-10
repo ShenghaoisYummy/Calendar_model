@@ -177,7 +177,7 @@ def main():
     # predictions = process_model_outputs(raw_outputs)
 
     # Generate predictions using GPT
-    print(f"Generating predictions using {args.gpt_model}...")
+    print(f"Generating predictions using 'gpt-4o-mini'...")
     raw_outputs = get_gpt_predictions(
         prompts, 
         system_prompt=system_prompt,
