@@ -205,7 +205,7 @@ class CalendarEventExtractor:
         # Define regex patterns for each field
         patterns = {
             'title': r'(?:title|event)[:\s]+([^\n,]+)',
-            'type': r'(?:type)[:\s]+([^\n,]+)',
+            'intent': r'(?:intent|type)[:\s]+([^\n,]+)',
             'description': r'(?:description)[:\s]+([^\n,]+)',
             'date': r'(?:date)[:\s]+([0-9-]+)',
             'startTime': r'(?:startTime|start time|start)[:\s]+([^\n,]+)',
@@ -235,7 +235,7 @@ class CalendarEventEvaluator:
             'date': ['date'],
             'datetime': ['startTime', 'endTime'],
             'location': ['location'],
-            'type': ['type']
+            'type': ['intent']
         }
         
         # Define weights for overall score calculation
@@ -246,7 +246,7 @@ class CalendarEventEvaluator:
             'startTime': 0.30,
             'endTime': 0.30,
             'location': 0.30,
-            'type': 0.50,
+            'intent': 0.50,
             'response': 0.10
         }
         
@@ -503,8 +503,8 @@ class CalendarEventEvaluator:
         overall_scores = []
         
         # Also collect type values for confusion matrix
-        type_references = []
-        type_predictions = []
+        intent_references = []
+        intent_predictions = []
         
         for ref, pred, result in zip(references, predictions, event_results):
             if 'error' in result:
@@ -513,16 +513,21 @@ class CalendarEventEvaluator:
             completeness_scores.append(result['completeness'])
             overall_scores.append(result['overall_score'])
             
-            # Collect type values
-            if 'type' in ref and 'type' in pred:
-                type_references.append(str(ref['type']).lower().strip())
-                type_predictions.append(str(pred['type']).lower().strip())
+            # Collect intent values
+            if 'intent' in ref and 'intent' in pred:
+                intent_references.append(str(ref['intent']).lower().strip())
+                intent_predictions.append(str(pred['intent']).lower().strip())
                 
             for field, field_result in result['fields'].items():
                 # Skip internal fields and errors
                 if field.startswith('_') or 'error' in field_result:
                     continue
                     
+                # Extract all scores for this field
+                if field in self.field_types['text']:
+                    for metric_name, metric_value in field_result.items():
+                        field_scores[f"{field}_{metric_name}"].append(metric_value)
+                
                 # Extract the main score for this field
                 if 'overall' in field_result:
                     field_scores[field].append(field_result['overall'])
@@ -555,11 +560,13 @@ class CalendarEventEvaluator:
                 'count': len(scores)
             }
             
-        # Add confusion matrix for type field if we have data
-        if type_references and type_predictions:
-            cm, metrics = self.compute_type_confusion_matrix(type_references, type_predictions)
+        # Add confusion matrix for intent field if we have data
+        if intent_references and intent_predictions:
+            cm, metrics = self.compute_type_confusion_matrix(intent_references, intent_predictions)
             if len(cm) > 0:
-                aggregate_results['type_confusion_matrix'] = metrics
+                aggregate_results['intent_confusion_matrix'] = metrics
+                # Store the raw confusion matrix as well
+                aggregate_results['intent_confusion_matrix']['matrix'] = cm.tolist()
             
         # Add detailed results
         aggregate_results['event_results'] = event_results

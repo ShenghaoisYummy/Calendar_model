@@ -10,7 +10,7 @@ with the following exact keys, in this order (no extra text before/after):
 • 'response' is how you would politely confirm the action to the user.
 Output NOTHING except that JSON object."""
 
-EVALUATION_DATA_PATH = "Data/processed/evaluation_schedule_response_en_20.csv"
-FINE_TUNE_DATA_PATH = "Data/processed/fine_tune_schedule_response_en_40k.csv"
+EVALUATION_DATA_PATH = "Data/cleaned/evaluation_schedule_response_en_20_cleaned.csv"
+FINE_TUNE_DATA_PATH = "Data/cleaned/fine_tune_schedule_response_en_40k_cleaned.csv"
 
 MODEL_PATH = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"

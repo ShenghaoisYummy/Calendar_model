@@ -45,14 +45,53 @@ def print_detailed_results(references, predictions, results):
             if field not in ['_id', '_source']:  # Skip internal fields
                 print(f"  {field}: {value}")
         
-        # Print evaluation scores
+        # Print evaluation scores with all details
         print("\nEvaluation Scores:")
         for field, field_result in event_result['fields'].items():
-            if 'overall' in field_result:
-                print(f"  {field}: {field_result['overall']:.3f}")
+            print(f"  {field}:")
+            for metric, score in field_result.items():
+                if isinstance(score, (int, float)):
+                    print(f"    - {metric}: {score:.3f}")
+                else:
+                    print(f"    - {metric}: {score}")
         
         print(f"\nOverall Score: {event_result['overall_score']:.3f}")
         print("=" * 80)
+    
+    # Print aggregate statistics
+    print("\nAggregate Statistics:")
+    print("-" * 40)
+    print(f"Number of Samples: {results['num_events']}")
+    print(f"Overall Score: {results['overall_score']['mean']:.4f} ± {results['overall_score']['std']:.4f}")
+    print(f"Completeness: {results['completeness']['mean']:.4f} ± {results['completeness']['std']:.4f}")
+    
+    # Print field scores
+    print("\nField Scores:")
+    for field, metrics in results['field_scores'].items():
+        print(f"  {field}: {metrics['mean']:.4f} ± {metrics['std']:.4f} (n={metrics['count']})")
+    
+    # Print confusion matrix if available
+    if 'intent_confusion_matrix' in results:
+        print("\nIntent Confusion Matrix:")
+        cm = results['intent_confusion_matrix']['matrix']
+        class_names = results['intent_confusion_matrix']['class_names']
+        
+        # Print header
+        header = "    "
+        for name in class_names:
+            header += f"{name[:10]:>10} "
+        print(header)
+        
+        # Print rows
+        for i, name in enumerate(class_names):
+            row = f"{name[:10]:<10} "
+            for j in range(len(cm[i])):
+                row += f"{cm[i][j]:>10} "
+            print(row)
+        
+        # Print metrics
+        print(f"\nIntent Classification Accuracy: {results['intent_confusion_matrix']['accuracy']:.4f}")
+        print(f"Intent Classification F1 Score: {results['intent_confusion_matrix']['f1_score']:.4f}")
 
 def main():
     # Parse command line arguments
@@ -135,13 +174,13 @@ def main():
     for field, metrics in results["field_scores"].items():
         wandb.log({f"{field}_score": metrics["mean"]})
     
-    # Log confusion matrix for event type if available
-    if "type_confusion_matrix" in results:
-        wandb.log({"type_confusion_matrix": wandb.plot.confusion_matrix(
+    # Log confusion matrix for intent field if available
+    if "intent_confusion_matrix" in results:
+        wandb.log({"intent_confusion_matrix": wandb.plot.confusion_matrix(
             probs=None,
-            y_true=results["type_confusion_matrix"]["true_labels"],
-            preds=results["type_confusion_matrix"]["pred_labels"],
-            class_names=results["type_confusion_matrix"]["class_names"]
+            y_true=results["intent_confusion_matrix"]["true_labels"],
+            preds=results["intent_confusion_matrix"]["pred_labels"],
+            class_names=results["intent_confusion_matrix"]["class_names"]
         )})
     
     print(f"\nEvaluation complete. Results saved to {output_file}")

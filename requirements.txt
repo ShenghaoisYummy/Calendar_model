@@ -14,4 +14,5 @@ peft
 bitsandbytes
 trl
 evaluate
-scipy 
+scipy
+emoji>=2.0.0 
