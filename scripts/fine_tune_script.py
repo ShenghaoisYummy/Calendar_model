@@ -22,7 +22,7 @@ def main():
     # Training configuration
     config = {
         "model_name": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-        "dataset_name": "Data/raw/schedule_response_en_50k.csv",  
+        "dataset_name": "Data/processed/fine_tune_schedule_response_en_40k.csv",  
         "output_dir": "outputs",
         "num_train_epochs": 3,
         "per_device_train_batch_size": 4,
@@ -30,7 +30,7 @@ def main():
         "learning_rate": 2e-4,
         "warmup_steps": 100,
         "logging_steps": 10,
-        "save_steps": 100,
+        "save_steps": 200,
         "early_stopping_patience": 10,  # Number of evaluations with no improvement
         "early_stopping_threshold": 0.01,  # Minimum improvement needed to reset patience
     }
@@ -47,8 +47,8 @@ def main():
     model = get_peft_model(model, lora_config)
     
     # Prepare datasets
-    train_dataset = prepare_dataset(tokenizer, config["dataset_name"], split="train", val_size=0.2)
-    val_dataset = prepare_dataset(tokenizer, config["dataset_name"], split="test", val_size=0.2)
+    train_dataset = prepare_dataset(tokenizer, config["dataset_name"], split="train", val_size=0.1)
+    val_dataset = prepare_dataset(tokenizer, config["dataset_name"], split="test", val_size=0.1)
     
     # Setup training arguments
     training_args = TrainingArguments(
