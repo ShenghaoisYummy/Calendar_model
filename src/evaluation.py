@@ -46,10 +46,23 @@ class DateTimeUtils:
         try:
             # Convert to string if it's a float
             if isinstance(date_str, float):
-                date_str = str(int(date_str))  # Convert float to int then to string
+                try:
+                    # Check if it's a whole number and convert to int first if so
+                    if date_str.is_integer():
+                        date_str = str(int(date_str))
+                    else:
+                        date_str = str(date_str)
+                except AttributeError:
+                    date_str = str(date_str)
+            elif isinstance(date_str, int):
+                date_str = str(date_str)
+            elif not isinstance(date_str, str):
+                date_str = str(date_str)
+                
+            # Try to parse the date
             datetime.strptime(date_str, "%Y-%m-%d")
             return True
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, AttributeError):
             return False
             
     @staticmethod
@@ -387,8 +400,11 @@ class CalendarEventEvaluator:
         value_match = False
         if ref_date and pred_date:
             try:
-                ref_dt = datetime.strptime(ref_date, "%Y-%m-%d")
-                pred_dt = datetime.strptime(pred_date, "%Y-%m-%d")
+                # Make sure both are strings before parsing
+                ref_date_str = str(ref_date)
+                pred_date_str = str(pred_date)
+                ref_dt = datetime.strptime(ref_date_str, "%Y-%m-%d")
+                pred_dt = datetime.strptime(pred_date_str, "%Y-%m-%d")
                 value_match = ref_dt == pred_dt
             except ValueError:
                 value_match = False
