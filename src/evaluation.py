@@ -25,7 +25,7 @@ from collections import defaultdict
 from sklearn.metrics import confusion_matrix, accuracy_score, f1_score
 import torch
 from tqdm import tqdm
-import openai
+from openai import OpenAI
 
 
 # Text similarity metrics
