@@ -51,6 +51,7 @@ def clean_dataset(input_path, output_path):
     - Clean emoji texts in the text column
     - Convert date, start time, end time to ISO 8601 format
     - Clean NaN columns
+    - Drop targetId column
     """
     print(f"Processing file: {input_path}")
     
@@ -67,9 +68,40 @@ def clean_dataset(input_path, output_path):
     # 2. Convert date, startTime, endTime to ISO format
     print("Converting datetime formats...")
     
-    # Create new ISO format columns
-    df['startDateTime'] = df.apply(lambda row: convert_datetime_format(row['date'], row['startTime']), axis=1)
-    df['endDateTime'] = df.apply(lambda row: convert_datetime_format(row['date'], row['endTime']), axis=1)
+    # Create temporary storage for ISO dates and times
+    date_iso = {}
+    start_time_iso = {}
+    end_time_iso = {}
+    
+    # Process each row to generate ISO formatted values
+    for idx, row in df.iterrows():
+        # Store original date for reference
+        original_date = row['date'] if not pd.isna(row['date']) else None
+        
+        # Convert startTime to ISO
+        if not pd.isna(row['startTime']) and original_date:
+            iso_datetime = convert_datetime_format(original_date, row['startTime'])
+            if iso_datetime:
+                date_iso[idx] = iso_datetime.split('T')[0]  # Keep just the date part
+                start_time_iso[idx] = iso_datetime  # Full ISO datetime
+        
+        # Convert endTime to ISO
+        if not pd.isna(row['endTime']) and original_date:
+            iso_datetime = convert_datetime_format(original_date, row['endTime'])
+            if iso_datetime:
+                if idx not in date_iso:  # If date wasn't set from startTime
+                    date_iso[idx] = iso_datetime.split('T')[0]
+                end_time_iso[idx] = iso_datetime  # Full ISO datetime
+    
+    # Apply the ISO formatted values to the dataframe
+    for idx in date_iso:
+        df.at[idx, 'date'] = date_iso[idx]
+    
+    for idx in start_time_iso:
+        df.at[idx, 'startTime'] = start_time_iso[idx]
+    
+    for idx in end_time_iso:
+        df.at[idx, 'endTime'] = end_time_iso[idx]
     
     # 3. Clean NaN values
     print("Cleaning NaN values...")
@@ -84,6 +116,11 @@ def clean_dataset(input_path, output_path):
     if 'isAllDay' in df.columns:
         df['isAllDay'] = df['isAllDay'].fillna(0).astype(int)
     
+    # 4. Drop targetId column
+    if 'targetId' in df.columns:
+        print("Dropping targetId column...")
+        df = df.drop(columns=['targetId'])
+    
     # Save the processed dataset
     output_dir = os.path.dirname(output_path)
     if not os.path.exists(output_dir):
@@ -96,8 +133,9 @@ def clean_dataset(input_path, output_path):
     print("\nProcessing Statistics:")
     print(f"Total rows: {len(df)}")
     print(f"Rows with cleaned text: {(df_original['text'] != df['text']).sum()}")
-    print(f"Successfully converted start datetimes: {df['startDateTime'].notna().sum()}")
-    print(f"Successfully converted end datetimes: {df['endDateTime'].notna().sum()}")
+    print(f"Successfully converted dates: {len(date_iso)}")
+    print(f"Successfully converted start times: {len(start_time_iso)}")
+    print(f"Successfully converted end times: {len(end_time_iso)}")
 
 def main():
     # Set paths
@@ -109,7 +147,12 @@ def main():
     if not cleaned_dir.exists():
         cleaned_dir.mkdir(parents=True, exist_ok=True)
     
-    # Process evaluation dataset
+    # Process test evaluation dataset
+    eval_input_path = processed_dir / "evaluation_schedule_response_en_20.csv"
+    eval_output_path = cleaned_dir / "evaluation_schedule_response_en_20_cleaned.csv"
+    clean_dataset(eval_input_path, eval_output_path)
+
+    # Process  evaluation dataset
     eval_input_path = processed_dir / "evaluation_schedule_response_en_10k.csv"
     eval_output_path = cleaned_dir / "evaluation_schedule_response_en_10k_cleaned.csv"
     clean_dataset(eval_input_path, eval_output_path)
