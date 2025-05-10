@@ -828,8 +828,11 @@ def get_model_predictions(model, tokenizer, prompts: List[str], system_prompt: s
     
     return predictions
 
-def get_gpt_predictions(prompts, system_prompt=None, model="gpt-3.5-turbo"):
+def get_gpt_predictions(prompts, system_prompt=None, model="gpt-4o-mini"):
     """Generate predictions using GPT for a list of prompts"""
+    # Initialize the client
+    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", "your-api-key-here"))
+    
     predictions = []
     
     for prompt in prompts:
@@ -842,8 +845,8 @@ def get_gpt_predictions(prompts, system_prompt=None, model="gpt-3.5-turbo"):
         # Add user prompt
         messages.append({"role": "user", "content": prompt})
         
-        # Get response from GPT
-        response = openai.ChatCompletion.create(
+        # Get response from GPT using the new API syntax
+        response = client.chat.completions.create(
             model=model,
             messages=messages,
             temperature=0,  # Use 0 for more deterministic outputs
@@ -851,7 +854,7 @@ def get_gpt_predictions(prompts, system_prompt=None, model="gpt-3.5-turbo"):
         )
         
         # Extract the response text
-        prediction = response['choices'][0]['message']['content']
+        prediction = response.choices[0].message.content
         predictions.append(prediction)
         
     return predictions
