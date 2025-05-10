@@ -57,6 +57,12 @@ class DateTimeUtils:
         """Check if string is a valid ISO datetime format"""
         if not dt_str:
             return False
+        # Handle float values
+        if isinstance(dt_str, float):
+            try:
+                dt_str = str(dt_str)
+            except:
+                return False
         try:
             dateutil.parser.isoparse(dt_str)
             return True
@@ -68,6 +74,12 @@ class DateTimeUtils:
         """Extract just the date part from ISO datetime string"""
         if not dt_str:
             return ""
+        # Handle float values
+        if isinstance(dt_str, float):
+            try:
+                dt_str = str(dt_str)
+            except:
+                return ""
         try:
             dt = dateutil.parser.isoparse(dt_str)
             return dt.strftime("%Y-%m-%d")
@@ -79,6 +91,12 @@ class DateTimeUtils:
         """Extract just the time part from ISO datetime string"""
         if not dt_str:
             return ""
+        # Handle float values
+        if isinstance(dt_str, float):
+            try:
+                dt_str = str(dt_str)
+            except:
+                return ""
         try:
             dt = dateutil.parser.isoparse(dt_str)
             return dt.strftime("%H:%M:%S")
@@ -90,6 +108,20 @@ class DateTimeUtils:
         """Compare two ISO datetime strings for equality (ignoring milliseconds)"""
         if not dt1 or not dt2:
             return False
+            
+        # Handle float values
+        if isinstance(dt1, float):
+            try:
+                dt1 = str(dt1)
+            except:
+                return False
+                
+        if isinstance(dt2, float):
+            try:
+                dt2 = str(dt2)
+            except:
+                return False
+                
         try:
             parsed1 = dateutil.parser.isoparse(dt1)
             parsed2 = dateutil.parser.isoparse(dt2)
@@ -322,6 +354,13 @@ class CalendarEventEvaluator:
         ref_date = reference
         pred_date = prediction
         
+        # Handle float reference
+        if isinstance(reference, float):
+            try:
+                reference = str(reference)
+            except:
+                reference = ""
+        
         # Try to extract date from ISO datetime if needed
         if reference:
             if self.dt_utils.is_valid_date_format(reference):
@@ -333,6 +372,13 @@ class CalendarEventEvaluator:
                 iso_date = self.dt_utils.convert_to_iso_format(reference)
                 if iso_date:
                     ref_date = self.dt_utils.extract_date_from_iso(iso_date)
+        
+        # Handle float prediction
+        if isinstance(prediction, float):
+            try:
+                prediction = str(prediction)
+            except:
+                prediction = ""
             
         if prediction and not self.dt_utils.is_valid_date_format(prediction) and self.dt_utils.is_valid_iso_datetime(prediction):
             pred_date = self.dt_utils.extract_date_from_iso(prediction)
@@ -359,13 +405,22 @@ class CalendarEventEvaluator:
         
         # Normalize reference to ISO format if needed
         ref_iso = reference
-        if reference and not self.dt_utils.is_valid_iso_datetime(reference):
+        
+        # Handle float values by converting to string
+        if isinstance(reference, float):
+            try:
+                # Try to convert float to string representation of a datetime
+                ref_iso = str(reference)
+            except:
+                ref_iso = ""
+        
+        if reference and not isinstance(reference, float) and not self.dt_utils.is_valid_iso_datetime(reference):
             # Try to convert date and time to ISO format
             ref_date = None
             ref_time = None
             
             # If reference contains both date and time, try to extract them
-            if ' ' in reference:
+            if isinstance(reference, str) and ' ' in reference:
                 parts = reference.split(' ')
                 for part in parts:
                     if self.dt_utils.is_valid_date_format(part):
