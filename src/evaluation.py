@@ -44,9 +44,12 @@ class DateTimeUtils:
         if not date_str:
             return False
         try:
+            # Convert to string if it's a float
+            if isinstance(date_str, float):
+                date_str = str(int(date_str))  # Convert float to int then to string
             datetime.strptime(date_str, "%Y-%m-%d")
             return True
-        except ValueError:
+        except (ValueError, TypeError):
             return False
             
     @staticmethod
