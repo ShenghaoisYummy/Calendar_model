@@ -20,6 +20,8 @@ import numpy as np
 import pandas as pd
 from typing import Dict, List, Any, Tuple, Union, Optional
 from datetime import datetime
+from transformers import AutoTokenizer, AutoModelForCausalLM
+from peft import PeftModel
 import dateutil.parser
 from collections import defaultdict
 from sklearn.metrics import confusion_matrix, accuracy_score, f1_score
@@ -869,3 +871,30 @@ def process_model_outputs(raw_outputs: List[str]) -> List[Dict[str, Any]]:
         processed_outputs.append(event)
         
     return processed_outputs
+
+def setup_pretrained_model_and_tokenizer(
+    model_name: str = "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+    device: str = "cuda" if torch.cuda.is_available() else "cpu"
+) -> tuple:
+    """
+    Setup model and tokenizer for training.
+    
+    Args:
+        model_name: Name of the model to load
+        device: Device to load the model on
+        
+    Returns:
+        tuple: (model, tokenizer)
+    """
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+    base_model = AutoModelForCausalLM.from_pretrained("TinyLlama/TinyLlama-1.1B-Chat-v1.0")
+    model = PeftModel.from_pretrained(base_model, "ShenghaoYummy/calendar-assistant")
+
+    
+    # Add padding token if not present
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+        model.config.pad_token_id = tokenizer.pad_token_id
+    
+    return model, tokenizer
