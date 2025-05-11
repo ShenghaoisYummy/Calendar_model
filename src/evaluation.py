@@ -875,7 +875,7 @@ def process_model_outputs(raw_outputs: List[str]) -> List[Dict[str, Any]]:
 def setup_pretrained_model_and_tokenizer(
     model_name: str = "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
     device: str = "cuda" if torch.cuda.is_available() else "cpu",
-    adapter_path: str = "ShenghaoYummy/calendar-assistant" 
+    adapter_path: str = "ShenghaoYummy/calendar-assistant_v2" 
 ) -> tuple:
     """
     Setup model and tokenizer for training.
@@ -888,9 +888,13 @@ def setup_pretrained_model_and_tokenizer(
     Returns:
         tuple: (model, tokenizer)
     """
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(adapter_path)
 
-    base_model = AutoModelForCausalLM.from_pretrained(model_name)
+    base_model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        torch_dtype=torch.float16,
+        device_map=device
+    )
     model = PeftModel.from_pretrained(base_model, adapter_path)
     
     # Add padding token if not present
