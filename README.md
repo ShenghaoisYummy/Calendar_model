@@ -1,69 +1,259 @@
-# TinyLlama Fine-tuning Project
+# Calendar Event Extraction and Scheduling Model
 
-This project provides scripts and utilities for fine-tuning the TinyLlama-1.1B-Chat model using LoRA (Low-Rank Adaptation).
+This project focuses on developing an AI model that can extract calendar event information from natural language text and handle various scheduling-related tasks. The model can understand different intents such as adding events, updating events, canceling events, and answering queries about existing events.
 
-## Project Structure
+## Project Overview
+
+The Calendar Model project provides an end-to-end solution for:
+
+1. **Understanding user requests**: Processing natural language inputs about calendar events
+2. **Intent recognition**: Identifying whether the user wants to add, update, query, or cancel events
+3. **Entity extraction**: Pulling out important details like event title, date, time, location, etc.
+4. **Response generation**: Creating appropriate responses to the user's requests
+
+## File Structure
 
 ```
-.
-├── README.md
-├── requirements.txt
-├── scripts/
-│   └── train.py
-└── src/
-    └── utils.py
+Calendar_model/
+├── data/                    # Data directory
+│   ├── raw/                 # Original unprocessed data
+│   ├── processed/           # Intermediate processed data
+│   └── cleaned/             # Final cleaned data ready for training
+├── src/                     # Source code
+│   ├── data_prep.py         # Data preprocessing functions
+│   ├── fine_tune.py         # Model fine-tuning utilities
+│   ├── evaluation.py        # Evaluation metrics and functions
+│   └── upload_to_huggingface.py  # Utilities for model sharing
+├── scripts/                 # Executable scripts
+│   ├── data_prep_script.py  # Script to run data preprocessing
+│   ├── fine_tune_script.py  # Script to run model fine-tuning
+│   └── evaluation_script.py # Script to evaluate model performance
+├── constants.py             # Global constants and configuration
+└── requirements.txt         # Project dependencies
 ```
 
-## Setup
+## How the Model Works
 
-1. Install the required dependencies:
+### 1. Data Preprocessing
+
+Before training the model, we need to clean and format the data. The data preprocessing involves:
+
+- **Cleaning emoji texts**: Removing emojis and other special characters
+- **Converting dates and times**: Standardizing to ISO 8601 format (YYYY-MM-DDThh:mm:ssZ)
+- **Handling missing values**: Ensuring consistency in how missing data is represented
+- **Formatting**: Making sure all data follows a consistent structure
+
+This preprocessing is crucial for teaching the model to understand and generate consistent calendar information.
+
+To run data preprocessing:
 
 ```bash
-pip install -r requirements.txt
+python scripts/data_prep_script.py
 ```
 
-2. Set up Weights & Biases (optional but recommended):
+This will process the data from the `data/processed/` directory and save the cleaned versions to `data/cleaned/`.
+
+### 2. Fine-tuning the Model
+
+We use a technique called "Low-Rank Adaptation (LoRA)" to fine-tune a pre-trained language model. This allows us to efficiently adapt the model to our calendar task without having to retrain the entire model.
+
+The fine-tuning process:
+
+- Starts with a pre-trained model (TinyLlama/TinyLlama-1.1B-Chat-v1.0)
+- Adds special parameter-efficient adapters that update a small subset of model parameters
+- Trains on our calendar data to teach the model to understand and generate calendar information
+
+To fine-tune the model:
 
 ```bash
-wandb login
+python scripts/fine_tune_script.py --dataset_path data/cleaned/fine_tune_schedule_response_en_40k_cleaned.csv --num_epochs 3
 ```
 
-## Usage
+The fine-tuned model will be saved to the specified output directory.
 
-1. Modify the training configuration in `scripts/train.py`:
+### 3. Evaluation
 
-   - Update `dataset_name` to your dataset
-   - Adjust training parameters as needed
+We evaluate the model's performance using a comprehensive set of metrics:
 
-2. Run the training script:
+#### Evaluation Metrics
+
+1. **Intent Recognition**:
+
+   - **Accuracy**: Whether the model correctly identifies the user's intent (ADD, UPDATE, CANCEL, QUERY, CHITCHAT)
+   - **F1 Score**: A balance of precision and recall for intent classification
+   - We also generate a confusion matrix to see where the model might be confusing different intents
+
+2. **Field-Specific Metrics**:
+
+   - **Text fields** (title, description, response):
+
+     - **Exact match**: 1.0 if the prediction exactly matches the reference, 0.0 otherwise
+     - **ROUGE-L**: Measures the longest common subsequence between prediction and reference
+     - **BLEU**: Measures n-gram overlap between prediction and reference
+     - **Combined score**: A weighted average of the above metrics (typically 0.7 _ ROUGE-L + 0.3 _ BLEU)
+
+   - **Date fields**:
+
+     - **Format validity**: Whether the predicted date is in a valid format (1.0 if valid, 0.0 if not)
+     - **Value match**: Whether the predicted date matches the reference date (1.0 if match, 0.0 if not)
+     - **Overall**: 1.0 only if both format is valid AND values match
+
+   - **Time fields** (startTime, endTime):
+
+     - **Format validity**: Whether the predicted time is in a valid ISO format (1.0 if valid, 0.0 if not)
+     - **Value match**: Whether the entire datetime matches the reference (1.0 if match, 0.0 if not)
+     - **Time match**: Whether just the time part (ignoring date) matches (1.0 if match, 0.0 if not)
+     - **Overall**: 1.0 only if both format is valid AND complete datetime values match
+
+   - **Location field**:
+     - **Exact match**: 1.0 if the prediction exactly matches the reference
+     - **Partial match**: Score between 0.0-1.0 based on whether one location contains the other
+     - **Word overlap**: Proportion of words that overlap between reference and prediction
+     - **Overall**: The highest score among these three metrics
+
+3. **Overall Scores**:
+   - **Completeness**: Measures how many fields were predicted compared to reference
+   - **Overall score**: A weighted average of all field scores, with weights adjusted based on the intent type
+
+#### How Scores Are Calculated
+
+Below is a detailed explanation of how evaluation scores are calculated for each field and how the overall score is determined:
+
+**1. Text Fields (title, description, response)**
+
+```
+title:
+  - exact_match: 0.000  (Binary: 1.0 if text matches exactly, 0.0 otherwise)
+  - rouge_l: 0.200      (ROUGE-L score ranging from 0.0 to 1.0)
+  - bleu: 0.024         (BLEU score ranging from 0.0 to 1.0)
+  - combined_score: 0.147  (= 0.7 * rouge_l + 0.3 * bleu = 0.7 * 0.2 + 0.3 * 0.024)
+```
+
+The combined score is a weighted average of ROUGE-L (70%) and BLEU (30%), providing a balance between sequence matching and n-gram precision.
+
+**2. Location Field**
+
+```
+location:
+  - exact_match: 0.000    (Binary: 1.0 if locations match exactly, 0.0 otherwise)
+  - partial_match: 0.000  (Score if one location contains the other, e.g., "Office" vs "Main Office")
+  - word_overlap: 0.000   (Proportion of words that are shared between locations)
+  - overall: 0.000        (The maximum value among the three metrics above)
+```
+
+The overall location score takes the highest value among the three metrics, allowing for partial credit even when locations aren't exact matches.
+
+**3. Intent Field**
+
+```
+intent:
+  - match: 0.000  (Binary: 1.0 if intents match exactly, 0.0 otherwise)
+```
+
+Intent matching is strict - the predicted intent must match the reference intent exactly.
+
+**4. Date Field**
+
+```
+date:
+  - format_valid: 1.000  (Binary: 1.0 if date is in valid format like YYYY-MM-DD, 0.0 otherwise)
+  - value_match: 1.000   (Binary: 1.0 if date value matches reference, 0.0 otherwise)
+  - overall: 1.000       (Binary: 1.0 only if both format_valid AND value_match are 1.0)
+```
+
+For dates, the model needs to get both the format right and the actual date value correct.
+
+**5. Time Fields (startTime, endTime)**
+
+```
+startTime:
+  - format_valid: 1.000   (Binary: 1.0 if time is in valid ISO format, 0.0 otherwise)
+  - value_match: 0.000    (Binary: 1.0 if complete datetime matches, 0.0 otherwise)
+  - time_match: 1.000     (Binary: 1.0 if just the time part matches, 0.0 otherwise)
+  - overall: 0.000        (Binary: 1.0 only if both format_valid AND value_match are 1.0)
+```
+
+Time fields need to have valid format and match the reference time exactly to get full credit.
+
+**6. Overall Score Calculation**
+
+The overall score is a weighted average of all field scores based on importance weights assigned to each field. The weights vary depending on the intent type:
+
+```
+Overall score = Sum(field_weight × field_score) / Sum(field_weights)
+```
+
+For example:
+
+- For ADD/UPDATE intents: date (0.5), time (0.5), title (0.2) have higher weights
+- For CANCEL intents: title (0.5), date (0.4) are most important
+- For QUERY intents: response (0.5) has the highest weight
+
+In the example with an overall score of 0.1064, the score is calculated by:
+
+1. Multiplying each field's score by its weight
+2. Summing these weighted scores
+3. Dividing by the sum of all applicable weights
+
+Fields with errors or missing values don't contribute to the score. The overall score provides a holistic measure of model performance across all evaluated fields, with emphasis on the fields most critical to each intent type.
+
+#### Why These Metrics?
+
+- **Intent recognition** is critical - a model that can't determine what the user wants will fail regardless of other capabilities
+- **Different field types need different metrics**:
+
+  - Text fields benefit from semantic similarity measures like ROUGE and BLEU, not just exact matching
+  - Date/time fields need format validation and value matching
+  - Locations might be expressed in various ways, so we use partial matching
+
+- **Weighted scoring** recognizes that some fields are more important than others, and importance varies by intent type:
+  - For ADD/UPDATE intents: date, time, and title are most critical
+  - For CANCEL intents: title and date are most important
+  - For QUERY intents: response quality is emphasized
+
+To evaluate the model:
 
 ```bash
-python scripts/train.py
+python scripts/evaluation_script.py --test_data data/cleaned/evaluation_schedule_response_en_20_cleaned.csv
 ```
 
-## Features
+This will generate detailed evaluation results with metrics for each sample and aggregated statistics.
 
-- LoRA fine-tuning for efficient training
-- Weights & Biases integration for experiment tracking
-- Automatic mixed precision training
-- Gradient accumulation for larger effective batch sizes
-- Checkpoint saving and loading
+### 4. Model Sharing
 
-## Configuration
+Once you're satisfied with your model's performance, you can share it on Hugging Face Hub:
 
-The main training configuration can be found in `scripts/train.py`. Key parameters include:
+```bash
+python scripts/fine_tune_script.py --push_to_hub --hf_model_name your-model-name
+```
 
-- `model_name`: The base model to fine-tune
-- `dataset_name`: Your training dataset
-- `num_train_epochs`: Number of training epochs
-- `per_device_train_batch_size`: Batch size per device
-- `learning_rate`: Learning rate for training
-- `warmup_steps`: Number of warmup steps
+This will upload your model to Hugging Face Hub, making it accessible to others. You'll need to set the `HF_API_TOKEN` environment variable with your Hugging Face token.
 
-## Output
+## Usage Tips
 
-The fine-tuned model checkpoints will be saved in the `outputs` directory. Each checkpoint includes:
+1. **Data quality matters**: The better your training data, the better your model will perform
+2. **System prompts**: Using a good system prompt can significantly improve model performance
+3. **Evaluation**: Always evaluate on a separate test set to get an accurate measure of performance
+4. **Fine-tuning parameters**: Experiment with learning rate, batch size, and number of epochs
 
-- Model weights
-- Tokenizer files
-- Training configuration
+## Troubleshooting
+
+If your model performs poorly (e.g., low overall score), check:
+
+1. **Data preprocessing**: Ensure your data is properly cleaned and formatted
+2. **Model loading**: Make sure the tokenizer and model settings match between training and evaluation
+3. **Training parameters**: Try different learning rates, batch sizes, or more training epochs
+4. **System prompt**: A well-crafted system prompt can significantly improve performance
+
+## Security Notes
+
+- Do not hardcode API tokens in your scripts
+- Use environment variables for sensitive information like API keys
+- Be careful when sharing fine-tuned models as they may contain training data patterns
+
+## Next Steps for Improvement
+
+- Try different base models
+- Collect more diverse training data
+- Experiment with different tokenizer settings
+- Implement more advanced data augmentation techniques
