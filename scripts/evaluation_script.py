@@ -21,6 +21,7 @@ from src.evaluation import (
     get_model_predictions,
     get_gpt_predictions,
     process_model_outputs,
+    setup_pretrained_model_and_tokenizer,
     CalendarEventEvaluator
 )
 from src.fine_tune import setup_model_and_tokenizer
@@ -172,8 +173,8 @@ def main():
         print("No system prompt will be used")
     
     # Load model and tokenizer
-    print(f"Loading model from {args.download_model_path}")
-    model, tokenizer = setup_model_and_tokenizer(args.download_model_path)
+    print(f"Loading model")
+    model, tokenizer = setup_pretrained_model_and_tokenizer()
     
     # Generate predictions
     print("Generating predictions...")
