@@ -38,7 +38,7 @@ DEFAULT_TRAINING_ARGS = {
     "learning_rate": 2e-4,
     "warmup_steps": 100,
     "logging_steps": 10,
-    "save_steps": 200,
+    "save_steps": 500,
     "early_stopping_patience": 10,
     "early_stopping_threshold": 0.01,
 }
