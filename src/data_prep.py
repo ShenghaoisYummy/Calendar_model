@@ -82,7 +82,6 @@ def clean_dataset(input_path, output_path):
     Clean the dataset according to requirements:
     - Clean emoji texts in the text column
     - Convert date, start time, end time to ISO 8601 format
-    - Clean NaN columns
     - Drop targetId column
     """
     print(f"Processing file: {input_path}")
@@ -134,15 +133,6 @@ def clean_dataset(input_path, output_path):
     
     for idx in end_time_iso:
         df.at[idx, 'endTime'] = end_time_iso[idx]
-    
-    # 3. Clean NaN values
-    print("Cleaning NaN values...")
-    
-    # Replace NaN with empty strings for text columns
-    text_columns = ['text', 'title', 'description', 'location', 'response']
-    for col in text_columns:
-        if col in df.columns:
-            df[col] = df[col].fillna('')
     
     # Make sure isAllDay is 0 or 1
     if 'isAllDay' in df.columns:
