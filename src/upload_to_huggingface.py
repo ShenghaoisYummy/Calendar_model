@@ -100,27 +100,3 @@ def push_to_hub(
     repo_url = f"https://huggingface.co/{full_repo_name}"
     print(f"Model successfully uploaded to {repo_url}")
     return repo_url
-
-def main():
-    parser = argparse.ArgumentParser(description="Upload a fine-tuned model to Hugging Face Hub")
-    parser.add_argument("--upload_model_path", default=UPLOAD_MODEL_PATH, type=str, required=True, help="Path to the model directory")
-    parser.add_argument("--repo_name", type=str, required=True, help="Name for the HF repository")
-    parser.add_argument("--organization", type=str, default=None, help="Organization to upload to")
-    parser.add_argument("--token", type=str, default=None, help=f"HF API token (will use {ENV_HF_API_TOKEN} env var or prompt if not provided)")
-    parser.add_argument("--private", action="store_true", default=DEFAULT_HF_ARGS["private"], help="Whether the repository should be private")
-    parser.add_argument("--commit_message", type=str, default=DEFAULT_HF_ARGS["commit_message"], help="Commit message")
-    parser.add_argument("--no_readme", action="store_true", help="Don't add a README.md file")
-    
-    args = parser.parse_args()
-    
-    push_to_hub(
-        model_path=args.upload_model_path,
-        repo_name=args.repo_name,
-        token=args.token,
-        private=args.private,
-        commit_message=args.commit_message,
-        add_readme=not args.no_readme
-    )
-
-if __name__ == "__main__":
-    main() 

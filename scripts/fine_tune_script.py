@@ -17,7 +17,7 @@ from src.fine_tune import (
     save_checkpoint
 )
 from constants import (
-    MODEL_PATH, 
+    DOWNLOAD_MODEL_PATH, 
     FINE_TUNE_DATA_PATH, 
     DEFAULT_TRAINING_ARGS,
     ENV_WANDB_API_KEY, 
@@ -31,7 +31,7 @@ from upload_to_huggingface import push_to_hub
 def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Fine-tune a model for calendar event extraction")
-    parser.add_argument("--model_name", type=str, default=MODEL_PATH, help="Base model to fine-tune")
+    parser.add_argument("--download_model_name", type=str, default=DOWNLOAD_MODEL_PATH, help="Base model to fine-tune")
     parser.add_argument("--dataset_path", type=str, default=FINE_TUNE_DATA_PATH, help="Path to dataset")
     parser.add_argument("--output_dir", type=str, default=DEFAULT_TRAINING_ARGS["output_dir"], help="Output directory for checkpoints")
     parser.add_argument("--num_epochs", type=int, default=DEFAULT_TRAINING_ARGS["num_train_epochs"], help="Number of training epochs")
@@ -45,7 +45,7 @@ def main():
 
     # Training configuration
     config = {
-        "model_name": args.model_name,
+        "download_model_name": args.download_model_name,
         "dataset_name": args.dataset_path,
         "output_dir": args.output_dir,
         "num_train_epochs": args.num_epochs,
@@ -66,7 +66,7 @@ def main():
     setup_wandb(WANDB_PROJECT_NAME, config, wandb_api_key)
     
     # Setup model and tokenizer
-    model, tokenizer = setup_model_and_tokenizer(config["model_name"])
+    model, tokenizer = setup_model_and_tokenizer(config["download_model_name"])
     
     # Setup LoRA
     lora_config = setup_lora_config()
@@ -136,7 +136,7 @@ def main():
         
         if not args.hf_model_name:
             # Create a default name if not provided
-            model_base_name = os.path.basename(args.model_name.split('/')[-1])
+            model_base_name = os.path.basename(args.download_model_name.split('/')[-1])
             args.hf_model_name = f"{model_base_name}-calendar-finetuned"
             
         # Push model to Hub
