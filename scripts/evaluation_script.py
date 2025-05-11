@@ -24,7 +24,13 @@ from src.evaluation import (
     CalendarEventEvaluator
 )
 from src.fine_tune import setup_model_and_tokenizer
-from src.constants import DEFAULT_SYSTEM_PROMPT, EVALUATION_DATA_PATH, MODEL_PATH
+from src.constants import (
+    DEFAULT_SYSTEM_PROMPT, 
+    EVALUATION_DATA_PATH, 
+    MODEL_PATH,
+    ENV_WANDB_API_KEY,
+    WANDB_EVAL_PROJECT_NAME
+)
 
 def print_detailed_results(references, predictions, results):
     """Print detailed results for each prediction"""
@@ -124,11 +130,16 @@ def main():
     parser.add_argument("--model_path", type=str, default=MODEL_PATH, help="Path to the fine-tuned model")
     parser.add_argument("--test_data", type=str, default=EVALUATION_DATA_PATH, help="Path to test data file")
     parser.add_argument("--output_dir", type=str, default="evaluation_results", help="Directory to save evaluation results")
-    parser.add_argument("--wandb_project", type=str, default="calendar-model-evaluation", help="W&B project name")
+    parser.add_argument("--wandb_project", type=str, default=WANDB_EVAL_PROJECT_NAME, help="W&B project name")
     parser.add_argument("--batch_size", type=int, default=8, help="Batch size for inference")
     parser.add_argument("--max_samples", type=int, default=None, help="Maximum number of test samples to evaluate")
     parser.add_argument("--system_prompt", type=str, default=DEFAULT_SYSTEM_PROMPT, help="Custom system prompt (or 'none' to disable)")
     args = parser.parse_args()
+    
+    # Check for WANDB API key
+    wandb_api_key = os.environ.get(ENV_WANDB_API_KEY)
+    if not wandb_api_key:
+        print(f"Warning: {ENV_WANDB_API_KEY} environment variable not set. W&B logging may not work properly.")
     
     # Initialize W&B
     wandb.init(project=args.wandb_project, config=vars(args))
@@ -164,23 +175,14 @@ def main():
     print(f"Loading model from {args.model_path}")
     model, tokenizer = setup_model_and_tokenizer(args.model_path)
     
-    # # Generate predictions
-    # print("Generating predictions...")
-    # raw_outputs = get_model_predictions(
-    #     model, 
-    #     tokenizer, 
-    #     prompts, 
-    #     system_prompt=system_prompt, 
-    #     batch_size=args.batch_size
-    # )
-    # predictions = process_model_outputs(raw_outputs)
-
-    # Generate predictions using GPT
-    print(f"Generating predictions using 'gpt-4o-mini'...")
-    raw_outputs = get_gpt_predictions(
+    # Generate predictions
+    print("Generating predictions...")
+    raw_outputs = get_model_predictions(
+        model, 
+        tokenizer, 
         prompts, 
-        system_prompt=system_prompt,
-        model='gpt-4o-mini'
+        system_prompt=system_prompt, 
+        batch_size=args.batch_size
     )
     predictions = process_model_outputs(raw_outputs)
     
@@ -216,11 +218,9 @@ def main():
             preds=results["intent_confusion_matrix"]["pred_labels"],
             class_names=results["intent_confusion_matrix"]["class_names"]
         )})
-
-    overall_score = results['overall_score']['mean'] * 100
-
+    
     print(f"\nEvaluation complete. Results saved to {output_file}")
-    print(f"Overall score: {overall_score:.4f}")
+    print(f"Overall score: {results['overall_score']['mean']:.4f}")
 
 if __name__ == "__main__":
     main()

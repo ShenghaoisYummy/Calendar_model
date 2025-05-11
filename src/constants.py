@@ -22,3 +22,32 @@ EVALUATION_DATA_PATH = "Data/cleaned/evaluation_schedule_response_en_20_cleaned.
 FINE_TUNE_DATA_PATH = "Data/cleaned/fine_tune_schedule_response_en_40k_cleaned.csv"
 
 MODEL_PATH = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+
+# Environment variable names for API keys
+ENV_WANDB_API_KEY = "WANDB_API_KEY"
+ENV_HF_API_TOKEN = "HF_TOKEN"
+ENV_OPENAI_API_KEY = "OPENAI_API_KEY"
+
+# Default training parameters
+DEFAULT_TRAINING_ARGS = {
+    "output_dir": "outputs",
+    "num_train_epochs": 3,
+    "per_device_train_batch_size": 4,
+    "gradient_accumulation_steps": 4,
+    "learning_rate": 2e-4,
+    "warmup_steps": 100,
+    "logging_steps": 10,
+    "save_steps": 200,
+    "early_stopping_patience": 10,
+    "early_stopping_threshold": 0.01,
+}
+
+# Hugging Face args
+DEFAULT_HF_ARGS = {
+    "commit_message": "Upload fine-tuned calendar model",
+    "private": False,
+}
+
+# WandB project name
+WANDB_PROJECT_NAME = "calendar-model-finetuning"
+WANDB_EVAL_PROJECT_NAME = "calendar-model-evaluation"
