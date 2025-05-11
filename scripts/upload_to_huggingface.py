@@ -58,7 +58,7 @@ def push_to_hub(
         print(f"Repository {full_repo_name} already exists. Updating...")
     except Exception:
         print(f"Creating new repository: {full_repo_name}")
-        create_repo(full_repo_name, repo_type="model", private=private, token=token)
+        create_repo(full_repo_name, repo_type="model", private=False, token=token)
     
     # Add README.md if requested
     if add_readme and not os.path.exists(os.path.join(model_path, "README.md")):
