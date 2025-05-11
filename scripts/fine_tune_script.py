@@ -39,7 +39,7 @@ def main():
     parser.add_argument("--learning_rate", type=float, default=DEFAULT_TRAINING_ARGS["learning_rate"], help="Learning rate")
     parser.add_argument("--push_to_hub", action="store_true", help="Push model to Hugging Face Hub after training")
     parser.add_argument("--hf_model_name", type=str, default=None, help="Name for the model on Hugging Face Hub")
-    parser.add_argument("--hf_organization", type=str, default=None, help="Hugging Face organization")
+    parser.add_argument("--hf_organization", type=str, default="ShenghaoYummy", help="Hugging Face organization")
     parser.add_argument("--private", action="store_true", default=DEFAULT_HF_ARGS["private"], help="Whether the HF repository should be private")
     args = parser.parse_args()
 
