@@ -24,7 +24,7 @@ from src.evaluation import (
     CalendarEventEvaluator
 )
 from src.fine_tune import setup_model_and_tokenizer
-from src.constants import (
+from constants import (
     DEFAULT_SYSTEM_PROMPT, 
     EVALUATION_DATA_PATH, 
     MODEL_PATH,

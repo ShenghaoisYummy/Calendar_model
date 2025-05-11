@@ -21,7 +21,8 @@ Output NOTHING except that JSON object."""
 EVALUATION_DATA_PATH = "Data/cleaned/evaluation_schedule_response_en_20_cleaned.csv"
 FINE_TUNE_DATA_PATH = "Data/cleaned/evaluation_schedule_response_en_20_cleaned.csv"
 
-MODEL_PATH = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+DOWNLOAD_MODEL_PATH = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+UPLOAD_MODEL_PATH = "outputs/final_checkpoint"
 
 # Environment variable names for API keys
 ENV_WANDB_API_KEY = "WANDB_API_KEY"

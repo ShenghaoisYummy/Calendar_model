@@ -16,7 +16,7 @@ from src.fine_tune import (
     setup_wandb,
     save_checkpoint
 )
-from src.constants import (
+from constants import (
     MODEL_PATH, 
     FINE_TUNE_DATA_PATH, 
     DEFAULT_TRAINING_ARGS,
@@ -26,7 +26,7 @@ from src.constants import (
     DEFAULT_HF_ARGS
 )
 from src.data_prep import prepare_dataset
-from scripts.upload_to_huggingface import push_to_hub
+from upload_to_huggingface import push_to_hub
 
 def main():
     # Parse command line arguments
