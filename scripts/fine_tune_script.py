@@ -26,7 +26,7 @@ from constants import (
     DEFAULT_HF_ARGS
 )
 from src.data_prep import prepare_dataset
-from upload_to_huggingface import push_to_hub
+from src.upload_to_huggingface import push_to_hub
 
 def main():
     # Parse command line arguments

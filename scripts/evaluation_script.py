@@ -27,7 +27,7 @@ from src.fine_tune import setup_model_and_tokenizer
 from constants import (
     DEFAULT_SYSTEM_PROMPT, 
     EVALUATION_DATA_PATH, 
-    MODEL_PATH,
+    DOWNLOAD_MODEL_PATH,
     ENV_WANDB_API_KEY,
     WANDB_EVAL_PROJECT_NAME
 )
@@ -127,7 +127,7 @@ def print_detailed_results(references, predictions, results):
 def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Evaluate fine-tuned calendar event model")
-    parser.add_argument("--model_path", type=str, default=MODEL_PATH, help="Path to the fine-tuned model")
+    parser.add_argument("--download_model_path", type=str, default=DOWNLOAD_MODEL_PATH, help="Path to the fine-tuned model")
     parser.add_argument("--test_data", type=str, default=EVALUATION_DATA_PATH, help="Path to test data file")
     parser.add_argument("--output_dir", type=str, default="evaluation_results", help="Directory to save evaluation results")
     parser.add_argument("--wandb_project", type=str, default=WANDB_EVAL_PROJECT_NAME, help="W&B project name")
@@ -172,8 +172,8 @@ def main():
         print("No system prompt will be used")
     
     # Load model and tokenizer
-    print(f"Loading model from {args.model_path}")
-    model, tokenizer = setup_model_and_tokenizer(args.model_path)
+    print(f"Loading model from {args.download_model_path}")
+    model, tokenizer = setup_model_and_tokenizer(args.download_model_path)
     
     # Generate predictions
     print("Generating predictions...")
