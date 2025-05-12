@@ -7,7 +7,8 @@ from transformers import (
     AutoModelForCausalLM,
     Trainer, 
     TrainingArguments,
-    DataCollatorForLanguageModeling
+    DataCollatorForLanguageModeling,
+    EarlyStoppingCallback
 )
 from peft import get_peft_model, LoraConfig, TaskType
 import wandb
@@ -187,8 +188,12 @@ def train(args):
         logging_steps=50,
         report_to="wandb" if "WANDB_API_KEY" in os.environ else None,
         fp16=True,
+    )
+
+       # Create early stopping callback
+    early_stopping_callback = EarlyStoppingCallback(
         early_stopping_patience=5,
-        early_stopping_threshold=0.001,
+        early_stopping_threshold=0.001
     )
     
     # Initialize trainer
@@ -198,6 +203,7 @@ def train(args):
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         data_collator=DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False),
+        callbacks=[early_stopping_callback]
     )
     
     # Start training

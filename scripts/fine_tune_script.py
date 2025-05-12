@@ -110,7 +110,7 @@ def main():
         train_dataset=train_dataset,
         eval_dataset=val_dataset,
         data_collator=DataCollatorForLanguageModeling(tokenizer, mlm=False),
-        # callbacks=[early_stopping_callback],  # Add early stopping callback
+        callbacks=[early_stopping_callback],  # Add early stopping callback
     )
     
     # Train
