@@ -989,7 +989,7 @@ def get_model_predictions(model, tokenizer, prompts: List[str], system_prompt: s
         # Extract only the assistant's response part
         for prompt, prediction in zip(formatted_prompts, batch_predictions):
             # Extract JSON objects directly
-            json_pattern = r'\{"title":".*?","intent":".*?","description":".*?","date":".*?","startTime":".*?","endTime":".*?","location":".*?","isAllDay":[01].*?\}'
+            json_pattern = r'\{"title":".*?","intent":".*?","description":".*?","date":".*?","startTime":".*?","endTime":".*?","location":".*?","isAllDay":[01](?:,"response":".*?")?\}'
             matches = re.findall(json_pattern, prediction)
             
             if matches:

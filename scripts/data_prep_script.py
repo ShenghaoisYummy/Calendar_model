@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, ValidationError
 from constants import DEFAULT_SYSTEM_PROMPT
 
 # Paths
-RAW_NAME = "fine_tune_40k_cleaned.csv"
+RAW_NAME = "evaluation_10k_cleaned.csv"
 RAW = "data/cleaned/" + RAW_NAME
 OUT_DIR = pathlib.Path("data/processed")
 OUT_DIR.mkdir(parents=True,exist_ok=True)
@@ -18,7 +18,7 @@ OUT_DIR.mkdir(parents=True,exist_ok=True)
 # Load raw CSV and select the source of truth columns
 print(f"Loading data from {RAW}...")
 df = pd.read_csv(RAW, dtype=str).fillna("")
-need = ["text", "title", "intent", "description", "date", "startTime", "endTime", "location", "isAllDay"]
+need = ["text", "title", "intent", "description", "date", "startTime", "endTime", "location", "isAllDay", "response"]
 df = df[need]  # drop everything else
 
 # Canonicalization functions
@@ -97,6 +97,7 @@ class EventJSON(BaseModel):
     )
     location: str = Field(default="")
     isAllDay: int = Field(default=0, ge=0, le=1)
+    response: str = Field(default="")
 
 print("Validating rows with Pydantic...")
 good_rows = []
@@ -133,27 +134,27 @@ def wrap(row):
 df["chatml"] = df.apply(wrap, axis=1)
 
 # Train/validation split → JSONL files
-print("Splitting into train/validation sets...")
-records = df["chatml"].tolist()
-random.seed(42)
-random.shuffle(records)
-split = int(0.9 * len(records))
+# print("Splitting into train/validation sets...")
+# records = df["chatml"].tolist()
+# random.seed(42)
+# random.shuffle(records)
+# split = int(0.9 * len(records))
 
-for name, data in [(RAW_NAME + "_train.jsonl", records[:split]),
-                   (RAW_NAME + "_val.jsonl", records[split:])]:
-    output_path = OUT_DIR / name
-    with open(output_path, "w", encoding="utf-8") as f:
-        for text in data:
-            f.write(json.dumps({"text": text}, ensure_ascii=False) + "\n")
-    print(f"Wrote {len(data)} examples to {output_path}")
+# for name, data in [(RAW_NAME + "_train.jsonl", records[:split]),
+#                    (RAW_NAME + "_val.jsonl", records[split:])]:
+#     output_path = OUT_DIR / name
+#     with open(output_path, "w", encoding="utf-8") as f:
+#         for text in data:
+#             f.write(json.dumps({"text": text}, ensure_ascii=False) + "\n")
+#     print(f"Wrote {len(data)} examples to {output_path}")
 
-print("Preprocessing complete!") 
+# print("Preprocessing complete!") 
 
 # Write all examples to a single JSONL file
-# print("Writing all examples to a single JSONL…")
-# output_path = OUT_DIR / "all.jsonl"
-# with open(output_path, "w", encoding="utf-8") as f:
-#     for text in df["chatml"]:
-#         # wrap each ChatML string in a top-level {"text": …} object
-#         f.write(json.dumps({"text": text}, ensure_ascii=False) + "\n")
-# print(f"Wrote {len(df)} examples to {output_path}")
+print("Writing all examples to a single JSONL…")
+output_path = OUT_DIR / f"{RAW_NAME}_.jsonl"
+with open(output_path, "w", encoding="utf-8") as f:
+    for text in df["chatml"]:
+        # wrap each ChatML string in a top-level {"text": …} object
+        f.write(json.dumps({"text": text}, ensure_ascii=False) + "\n")
+print(f"Wrote {len(df)} examples to {output_path}")
