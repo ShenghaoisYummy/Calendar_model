@@ -22,9 +22,9 @@ from src.evaluation import (
     get_gpt_predictions,
     process_model_outputs,
     setup_pretrained_model_and_tokenizer,
-    CalendarEventEvaluator
+    CalendarEventEvaluator,
+    print_detailed_results
 )
-from src.fine_tune import setup_model_and_tokenizer
 from constants import (
     DEFAULT_SYSTEM_PROMPT, 
     EVALUATION_DATA_PATH, 
@@ -32,98 +32,6 @@ from constants import (
     ENV_WANDB_API_KEY,
     WANDB_EVAL_PROJECT_NAME
 )
-
-def print_detailed_results(references, predictions, results):
-    """Print detailed results for each prediction"""
-    print("\nDetailed Results:")
-    print("=" * 80)
-    
-    for i, (ref, pred, event_result) in enumerate(zip(references, predictions, results['event_results'])):
-        print(f"\nSample {i+1}:")
-        print("-" * 40)
-        
-        # Print reference intent (if available)
-        if 'reference_intent' in event_result:
-            print(f"Reference Intent: {event_result['reference_intent'].upper()}")
-            print("Fields evaluated based on this intent type")
-            print("-" * 40)
-        
-        # Print reference
-        print("Reference:")
-        for field, value in ref.items():
-            if field not in ['_id', '_source']:  # Skip internal fields
-                print(f"  {field}: {value}")
-        
-        # Print prediction
-        print("\nPrediction:")
-        for field, value in pred.items():
-            if field not in ['_id', '_source']:  # Skip internal fields
-                print(f"  {field}: {value}")
-        
-        # Print evaluation scores with all details
-        print("\nEvaluation Scores:")
-        for field, field_result in event_result['fields'].items():
-            print(f"  {field}:")
-            for metric, score in field_result.items():
-                if isinstance(score, (int, float)):
-                    print(f"    - {metric}: {score:.3f}")
-                else:
-                    print(f"    - {metric}: {score}")
-        
-        print(f"\nOverall Score: {event_result['overall_score']:.3f}")
-        print("=" * 80)
-    
-    # Print aggregate statistics
-    print("\nAggregate Statistics:")
-    print("-" * 40)
-    print(f"Number of Samples: {results['num_events']}")
-    print(f"Overall Score: {results['overall_score']['mean']:.4f} ± {results['overall_score']['std']:.4f}")
-    print(f"Completeness: {results['completeness']['mean']:.4f} ± {results['completeness']['std']:.4f}")
-    
-    # Count samples by intent type
-    intent_counts = {}
-    for event_result in results['event_results']:
-        if 'reference_intent' in event_result:
-            intent = event_result['reference_intent']
-            intent_counts[intent] = intent_counts.get(intent, 0) + 1
-    
-    # Print intent type statistics
-    if intent_counts:
-        print("\nSamples by Intent Type:")
-        for intent, count in sorted(intent_counts.items()):
-            print(f"  {intent.upper()}: {count} samples")
-    
-    # Print field scores
-    print("\nField Scores:")
-    for field, metrics in results['field_scores'].items():
-        if field == 'intent':
-            print(f"  {field}: {metrics['mean']:.4f} (Accuracy) (n={metrics['count']})")
-        else:
-            print(f"  {field}: {metrics['mean']:.4f} ± {metrics['std']:.4f} (n={metrics['count']})")
-    
-    # Print confusion matrix if available
-    if 'intent_confusion_matrix' in results:
-        print("\nIntent Confusion Matrix:")
-        cm = results['intent_confusion_matrix']['matrix']
-        class_names = results['intent_confusion_matrix']['class_names']
-        
-        # Print header
-        header = "    "
-        for name in class_names:
-            header += f"{name[:10]:>10} "
-        print(header)
-        
-        # Print rows
-        for i, name in enumerate(class_names):
-            row = f"{name[:10]:<10} "
-            for j in range(len(cm[i])):
-                row += f"{cm[i][j]:>10} "
-            print(row)
-        
-        # Print metrics
-        intent_accuracy = results['intent_confusion_matrix']['accuracy']
-        print(f"\nIntent Classification Accuracy: {intent_accuracy:.4f} ** (Used for intent field score)")
-        print(f"Intent Classification F1 Score: {results['intent_confusion_matrix']['f1_score']:.4f}")
 
 def main():
     # Parse command line arguments

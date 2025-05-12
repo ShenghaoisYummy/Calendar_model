@@ -25,9 +25,9 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Fine-tune a model with LoRA")
     parser.add_argument("--model_name", type=str, default="TinyLlama/TinyLlama-1.1B-Chat-v1.0", 
                         help="Base model to fine-tune")
-    parser.add_argument("--train_file", type=str, default="prep/train.jsonl", 
+    parser.add_argument("--train_file", type=str, default="processed/fine_tune_40k_train.jsonl", 
                         help="Path to training data")
-    parser.add_argument("--val_file", type=str, default="prep/val.jsonl", 
+    parser.add_argument("--val_file", type=str, default="processed/fine_tune_40k_val.jsonl", 
                         help="Path to validation data")
     parser.add_argument("--output_dir", type=str, default="./output", 
                         help="Directory to save model checkpoints")
@@ -53,7 +53,7 @@ def parse_args():
                         help="Push model to Hugging Face Hub")
     parser.add_argument("--hub_model_id", type=str, default=None, 
                         help="Model ID for Hugging Face Hub")
-    parser.add_argument("--wandb_project", type=str, default="calendar-assistant", 
+    parser.add_argument("--wandb_project", type=str, default="calendar-assistant-v3", 
                         help="Weights & Biases project name")
     return parser.parse_args()
 
@@ -184,9 +184,11 @@ def train(args):
         weight_decay=0.01,
         warmup_steps=100,
         logging_dir=f"{args.output_dir}/logs",
-        logging_steps=100,
+        logging_steps=50,
         report_to="wandb" if "WANDB_API_KEY" in os.environ else None,
         fp16=True,
+        early_stopping_patience=5,
+        early_stopping_threshold=0.001,
     )
     
     # Initialize trainer
