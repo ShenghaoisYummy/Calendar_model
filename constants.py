@@ -15,7 +15,7 @@ Formatting rules
   – Do not wrap the JSON in code‑blocks or add commentary before/after.
 
 • Field constraints  
-  • "intent"    ∈ {"add", "edit", "delete", "query", "chitchat"}  
+  • "intent"    ∈ {"add", "update", "delete", "query", "chitchat"}  
   • "date"    RFC 3339 date only, e.g. "2025‑07‑21" (no time component).  
   • "startTime"/"endTime" RFC 3339 time‑of‑day,  
    e.g. "14:30:00".  
