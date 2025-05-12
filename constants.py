@@ -36,7 +36,7 @@ Reject anything that would break these rules by regenerating your answer; never
 return malformed JSON or additional text.
 """
 
-EVALUATION_DATA_PATH = "Data/processed/split1.jsonl"
+EVALUATION_DATA_PATH = "Data/processed/test_20.jsonl"
 FINE_TUNE_DATA_PATH = "Data/cleaned/fine_tune_schedule_response_en_40k_cleaned.csv"
 
 DOWNLOAD_MODEL_PATH = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"

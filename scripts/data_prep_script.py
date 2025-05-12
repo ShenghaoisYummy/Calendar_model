@@ -24,7 +24,7 @@ df = df[need]  # drop everything else
 # Canonicalization functions
 INTENT_MAP = {
     "add": "add", "create": "add",
-    "edit": "update", "update": "update",
+    "update": "update", "edit": "update",
     "delete": "delete", "remove": "delete",
     "query": "query", "search": "query",
     "chitchat": "chitchat"  # Added chitchat intent if needed
@@ -46,14 +46,14 @@ def canon_date(d):
         return ""
 
 def canon_time(t: str) -> str:
-    """Canonicalize time to simple ISO format without timezone:
-       '5:30 PM' → '17:30:00'."""
+    """Canonicalize time to ISO format with timezone:
+       '5:30 PM' → '17:30:00+00:00'."""
     if not t or not t.strip():
         return ""
     try:
         dt = parser.parse(t)
-        # Only the clock-of-day, no timezone
-        return dt.time().isoformat(timespec="seconds")
+        # Include timezone information in the output
+        return dt.time().isoformat(timespec="seconds") + "+00:00"
     except (ValueError, TypeError):
         return ""
 
