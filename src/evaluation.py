@@ -802,7 +802,7 @@ def load_data(file_path: str) -> List[Dict[str, Any]]:
         raise ValueError(f"Unsupported file format: {file_path}")
 
 def get_model_predictions(model, tokenizer, prompts: List[str], system_prompt: str = None, 
-                         max_length: int = 512, batch_size: int = 8) -> List[str]:
+                         max_new_tokens: int = 256, batch_size: int = 8) -> List[str]:
     """Generate predictions from the model for a list of prompts"""
     predictions = []
     
@@ -819,13 +819,18 @@ def get_model_predictions(model, tokenizer, prompts: List[str], system_prompt: s
         else:
             formatted_prompts = [f"<|user|>\n{prompt}\n<|assistant|>" for prompt in batch_prompts]
         
+        # Print input length for debugging
+        if i == 0:
+            sample_tokens = tokenizer(formatted_prompts[0], return_tensors="pt")
+            print(f"\nDEBUG: Input length of first prompt: {len(sample_tokens['input_ids'][0])} tokens")
+        
         inputs = tokenizer(formatted_prompts, padding=True, truncation=True, return_tensors="pt")
         inputs = {k: v.to(model.device) for k, v in inputs.items()}
         
         with torch.no_grad():
             outputs = model.generate(
                 **inputs,
-                max_length=max_length,
+                max_new_tokens=max_new_tokens,  # Use max_new_tokens instead of max_length
                 num_return_sequences=1,
                 do_sample=False
             )

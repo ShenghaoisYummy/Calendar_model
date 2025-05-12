@@ -22,11 +22,21 @@ def setup_model_and_tokenizer(
         tuple: (model, tokenizer)
     """
     tokenizer = AutoTokenizer.from_pretrained(model_name)
+    
+    # Add ChatML special tokens if not present
+    chatml_tokens = ["<|system|>", "<|user|>", "<|assistant|>", "<|end|>"]
+    special_tokens_dict = {"additional_special_tokens": chatml_tokens}
+    num_added_tokens = tokenizer.add_special_tokens(special_tokens_dict)
+    
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
         torch_dtype=torch.float16,
         device_map=device
     )
+    
+    # Resize token embeddings if new tokens were added
+    if num_added_tokens > 0:
+        model.resize_token_embeddings(len(tokenizer))
     
     # Add padding token if not present
     if tokenizer.pad_token is None:

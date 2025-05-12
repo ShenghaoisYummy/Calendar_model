@@ -44,6 +44,7 @@ def main():
     parser.add_argument("--batch_size", type=int, default=8, help="Batch size for inference")
     parser.add_argument("--max_samples", type=int, default=None, help="Maximum number of test samples to evaluate")
     parser.add_argument("--system_prompt", type=str, default=DEFAULT_SYSTEM_PROMPT, help="Custom system prompt (or 'none' to disable)")
+    parser.add_argument("--max_new_tokens", type=int, default=256, help="Maximum number of new tokens to generate")
     args = parser.parse_args()
     
     # Check for WANDB API key
@@ -96,7 +97,8 @@ def main():
         tokenizer, 
         prompts, 
         system_prompt=system_prompt, 
-        batch_size=args.batch_size
+        batch_size=args.batch_size,
+        max_new_tokens=args.max_new_tokens
     )
     
     # Print sample of raw outputs for debugging
