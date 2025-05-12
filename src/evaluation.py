@@ -347,7 +347,7 @@ class CalendarEventExtractor:
                 result[field] = match.group(1).strip()
         
         # Look for intent values directly in the text
-        intent_values = ["add", "edit", "delete", "query", "chitchat"]
+        intent_values = ["add", "update", "delete", "query", "chitchat"]
         for intent in intent_values:
             if re.search(r'\b' + intent + r'\b', text, re.IGNORECASE):
                 result["intent"] = intent
