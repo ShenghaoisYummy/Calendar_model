@@ -54,7 +54,7 @@ def parse_args():
                         help="Push model to Hugging Face Hub")
     parser.add_argument("--hub_model_id", type=str, default=None, 
                         help="Model ID for Hugging Face Hub")
-    parser.add_argument("--wandb_project", type=str, default="calendar-assistant-v3", 
+    parser.add_argument("--wandb_project", type=str, default="calendar-assistant-v4", 
                         help="Weights & Biases project name")
     return parser.parse_args()
 
@@ -215,7 +215,7 @@ def train(args):
 
     # Create early stopping callback
     early_stopping_callback = EarlyStoppingCallback(
-        early_stopping_patience=5,
+        early_stopping_patience=3,
         early_stopping_threshold=0.001
     )
     
@@ -252,7 +252,7 @@ def train(args):
     trainer.save_model(f"{args.output_dir}/final")
     tokenizer.save_pretrained(f"{args.output_dir}/final")
     
-    full_repo_name = "ShenghaoYummy/calendar-assistant_v3"
+    full_repo_name = "ShenghaoYummy/calendar-assistant_v4"
 
     # Push to Hub if requested
     if args.push_to_hub and "HF_TOKEN" in os.environ:
