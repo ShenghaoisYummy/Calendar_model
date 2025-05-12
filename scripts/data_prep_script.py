@@ -30,8 +30,6 @@ INTENT_MAP = {
     "chitchat": "chitchat"  # Added chitchat intent if needed
 }
 
-DEFAULT_TZ = tz.gettz("Australia/Sydney")  # default timezone
-
 def canon_intent(x):
     """Canonicalize event intent"""
     if not x:
@@ -47,14 +45,15 @@ def canon_date(d):
     except (ValueError, TypeError):
         return ""
 
-def canon_time(t, z=DEFAULT_TZ):
-    """Canonicalize time to ISO format with timezone: '5:30 PM' → '17:30:00+10:00'"""
-    if not t:
+def canon_time(t: str) -> str:
+    """Canonicalize time to simple ISO format without timezone:
+       '5:30 PM' → '17:30:00'."""
+    if not t or not t.strip():
         return ""
     try:
-        dt = parser.parse(t).replace(tzinfo=z)
-        # Keep seconds for uniformity
-        return dt.time().isoformat(timespec="seconds") + dt.strftime("%z")[:-2] + ":" + dt.strftime("%z")[-2:]
+        dt = parser.parse(t)
+        # Only the clock-of-day, no timezone
+        return dt.time().isoformat(timespec="seconds")
     except (ValueError, TypeError):
         return ""
 

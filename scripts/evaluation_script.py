@@ -25,6 +25,7 @@ from src.evaluation import (
     CalendarEventEvaluator,
     print_detailed_results
 )
+from src.fine_tune import setup_model_and_tokenizer
 from constants import (
     DEFAULT_SYSTEM_PROMPT, 
     EVALUATION_DATA_PATH, 
@@ -80,9 +81,13 @@ def main():
     else:
         print("No system prompt will be used")
     
-    # Load model and tokenizer
+   
     print(f"Loading model")
-    model, tokenizer = setup_pretrained_model_and_tokenizer()
+    # Load base model and tokenizer
+    model, tokenizer = setup_model_and_tokenizer()
+    # # Load pretrained model and tokenizer
+    # model, tokenizer = setup_pretrained_model_and_tokenizer()
+
     
     # Generate predictions
     print("Generating predictions...")

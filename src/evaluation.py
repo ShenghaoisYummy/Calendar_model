@@ -944,7 +944,7 @@ def setup_pretrained_model_and_tokenizer(
     """
     # Load tokenizer from adapter path
     tokenizer = AutoTokenizer.from_pretrained(adapter_path)
-    
+
     # Ensure ChatML special tokens are present
     chatml_tokens = ["<|system|>", "<|user|>", "<|assistant|>", "<|end|>"]
     special_tokens_dict = {"additional_special_tokens": chatml_tokens}
