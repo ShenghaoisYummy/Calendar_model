@@ -26,9 +26,9 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Fine-tune a model with LoRA")
     parser.add_argument("--model_name", type=str, default="TinyLlama/TinyLlama-1.1B-Chat-v1.0", 
                         help="Base model to fine-tune")
-    parser.add_argument("--train_file", type=str, default="Data/processed/fine_tune_40k_cleaned.csv_train.jsonl", 
+    parser.add_argument("--train_file", type=str, default="Data/processed/split1.jsonl", 
                         help="Path to training data")
-    parser.add_argument("--val_file", type=str, default="Data/processed/fine_tune_40k_cleaned.csv_val.jsonl", 
+    parser.add_argument("--val_file", type=str, default="Data/processed/split2.jsonl", 
                         help="Path to validation data")
     parser.add_argument("--output_dir", type=str, default="./output", 
                         help="Directory to save model checkpoints")
