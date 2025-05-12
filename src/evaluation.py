@@ -308,6 +308,26 @@ class CalendarEventExtractor:
             
         result = {}
         
+        # First, try to extract JSON-like structures with key-value pairs
+        json_like_pattern = r'"([^"]+)"\s*:\s*"([^"]*)"'
+        json_like_matches = re.findall(json_like_pattern, text)
+        
+        if json_like_matches:
+            print(f"DEBUG: Found {len(json_like_matches)} JSON-like key-value pairs")
+            for key, value in json_like_matches:
+                if key in ["title", "intent", "description", "date", "startTime", "endTime", "location", "response"]:
+                    result[key] = value
+            
+            # Handle isAllDay separately as it's a number, not a string
+            isAllDay_match = re.search(r'"isAllDay"\s*:\s*(\d)', text)
+            if isAllDay_match:
+                result["isAllDay"] = int(isAllDay_match.group(1))
+                
+            # If we found at least some fields, return the result
+            if result:
+                print(f"DEBUG: Extracted {len(result)} fields from JSON-like structure")
+                return result
+        
         # Define regex patterns for each field
         patterns = {
             'title': r'(?:title|event)[:\s]+([^\n,]+)',
@@ -325,6 +345,13 @@ class CalendarEventExtractor:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 result[field] = match.group(1).strip()
+        
+        # Look for intent values directly in the text
+        intent_values = ["add", "edit", "delete", "query", "chitchat"]
+        for intent in intent_values:
+            if re.search(r'\b' + intent + r'\b', text, re.IGNORECASE):
+                result["intent"] = intent
+                break
         
         # Map 'type' to 'intent' if 'type' exists but 'intent' doesn't
         if 'type' in result and 'intent' not in result:
@@ -847,6 +874,16 @@ def get_model_predictions(model, tokenizer, prompts: List[str], system_prompt: s
         
         # Extract only the assistant's response part
         for prompt, prediction in zip(formatted_prompts, batch_predictions):
+            # Extract JSON objects directly
+            json_pattern = r'\{"title":".*?","intent":".*?","description":".*?","date":".*?","startTime":".*?","endTime":".*?","location":".*?","isAllDay":[01].*?\}'
+            matches = re.findall(json_pattern, prediction)
+            
+            if matches:
+                # Use the first JSON object found
+                predictions.append(matches[0])
+                continue
+                
+            # If no JSON object found, try to extract the assistant's response
             if prediction.startswith(prompt):
                 # Extract content after <|assistant|> tag
                 assistant_part = prediction[len(prompt):].strip()
@@ -898,7 +935,6 @@ def get_gpt_predictions(prompts, system_prompt=None, model="gpt-4o-mini"):
 
 def process_model_outputs(raw_outputs: List[str]) -> List[Dict[str, Any]]:
     """Process raw model outputs into structured event data"""
-    extractor = CalendarEventExtractor()
     processed_outputs = []
     
     print("\n===== RAW MODEL OUTPUTS =====")
@@ -909,22 +945,26 @@ def process_model_outputs(raw_outputs: List[str]) -> List[Dict[str, Any]]:
         # Clean up the output - remove any ChatML tags that might remain
         output = re.sub(r'<\|.*?\|>', '', output).strip()
         
-        # Try to extract JSON from the output
-        event = extractor.extract_from_json(output)
+        # Extract JSON objects using regex - look for complete JSON objects
+        json_pattern = r'\{"title":".*?","intent":".*?","description":".*?","date":".*?","startTime":".*?","endTime":".*?","location":".*?","isAllDay":[01].*?\}'
+        matches = re.findall(json_pattern, output)
         
-        # If extraction failed (empty dict), try a more aggressive approach
+        event = {}
+        if matches:
+            # Use the first complete JSON object found
+            try:
+                print(f"Found JSON: {matches[0]}")
+                event = json.loads(matches[0])
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error: {e}")
+                # If that fails, fall back to regex extraction
+                event = {}
+        
+        # If no valid JSON found, try a more aggressive approach with the extractor
         if not event:
-            # Look for anything that resembles a JSON object
-            json_pattern = r'(\{[^{}]*"[^{}]*"[^{}]*\})'
-            match = re.search(json_pattern, output)
-            if match:
-                try:
-                    json_text = match.group(1)
-                    event = json.loads(json_text)
-                except json.JSONDecodeError:
-                    # If that fails, fall back to regex extraction
-                    event = extractor.extract_from_text(output)
-        
+            extractor = CalendarEventExtractor()
+            event = extractor.extract_from_text(output)
+            
         print(f"Extracted event: {json.dumps(event, ensure_ascii=False)}")
         processed_outputs.append(event)
     
