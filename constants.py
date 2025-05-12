@@ -70,3 +70,6 @@ DEFAULT_HF_ARGS = {
 # WandB project name
 WANDB_PROJECT_NAME = "calendar-model-finetuning"
 WANDB_EVAL_PROJECT_NAME = "calendar-model-evaluation"
+
+# Hugging Face
+HF_REPO_NAME = "calendar-model-finetuned"

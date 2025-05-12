@@ -252,6 +252,8 @@ def train(args):
     trainer.save_model(f"{args.output_dir}/final")
     tokenizer.save_pretrained(f"{args.output_dir}/final")
     
+    full_repo_name = "ShenghaoYummy/calendar-assistant-v3"
+
     # Push to Hub if requested
     if args.push_to_hub and "HF_TOKEN" in os.environ:
         print(f"Pushing model to Hugging Face Hub as {args.hub_model_id}")
@@ -260,17 +262,17 @@ def train(args):
         # Create repository if it doesn't exist
         try:
             api.create_repo(
-                repo_id=args.hub_model_id,
+                repo_id=full_repo_name,
                 private=False,
                 exist_ok=True
             )
-            print(f"Repository {args.hub_model_id} created or already exists")
+            print(f"Repository {full_repo_name} created or already exists")
         except Exception as e:
             print(f"Error creating repository: {e}")
         
         # Upload model files
-        model.push_to_hub(args.hub_model_id)
-        tokenizer.push_to_hub(args.hub_model_id)
+        model.push_to_hub(full_repo_name)
+        tokenizer.push_to_hub(full_repo_name)
         print("Model successfully pushed to Hub")
 
 if __name__ == "__main__":
