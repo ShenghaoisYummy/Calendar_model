@@ -230,7 +230,7 @@ def train(args):
             mlm=False,
             pad_to_multiple_of=8  # Ensure padding to multiple of 8 for efficiency
         ),
-        callbacks=[early_stopping_callback]
+        # callbacks=[early_stopping_callback]
     )
     
     # Validate datasets before training
@@ -252,7 +252,7 @@ def train(args):
     trainer.save_model(f"{args.output_dir}/final")
     tokenizer.save_pretrained(f"{args.output_dir}/final")
     
-    full_repo_name = "ShenghaoYummy/calendar-assistant_v4"
+    full_repo_name = "ShenghaoYummy/calendar-assistant_v5"
 
     # Push to Hub if requested
     if args.push_to_hub and "HF_TOKEN" in os.environ:

@@ -1060,7 +1060,7 @@ def process_model_outputs(raw_outputs: List[str]) -> List[Dict[str, Any]]:
         output = re.sub(r'<\|.*?\|>', '', output).strip()
         
         # Extract JSON objects using regex - look for complete JSON objects
-        json_pattern = r'\{"title":".*?","intent":".*?","description":".*?","date":".*?","startTime":".*?","endTime":".*?","location":".*?","isAllDay":[01].*?\}'
+        json_pattern = r'\{"title":".*?","intent":".*?","description":".*?","date":".*?","startTime":".*?","endTime":".*?","location":".*?","isAllDay":[01](?:,"response":".*?")?\}'
         matches = re.findall(json_pattern, output)
         
         event = {}
@@ -1084,51 +1084,6 @@ def process_model_outputs(raw_outputs: List[str]) -> List[Dict[str, Any]]:
     
     print("\n===== END OF RAW OUTPUTS =====\n")
     return processed_outputs
-
-# def setup_pretrained_model_and_tokenizer(
-#     model_name: str = "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-#     device: str = "cuda" if torch.cuda.is_available() else "cpu",
-#     adapter_path: str = "ShenghaoYummy/calendar-assistant_v3" 
-# ) -> tuple:
-#     """
-#     Setup model and tokenizer for training.
-    
-#     Args:
-#         model_name: Name of the base model to load
-#         device: Device to load the model on
-#         adapter_path: Path to your fine-tuned model adapter
-        
-#     Returns:
-#         tuple: (model, tokenizer)
-#     """
-#     # Load tokenizer from adapter path
-#     tokenizer = AutoTokenizer.from_pretrained(adapter_path)
-
-#      # Load base model
-#     base_model = AutoModelForCausalLM.from_pretrained(
-#         model_name,
-#         torch_dtype=torch.float16,
-#         device_map=device
-#     )
-
-#     # Ensure ChatML special tokens are present
-#     chatml_tokens = ["<|system|>", "<|user|>", "<|assistant|>", "<|end|>"]
-#     special_tokens_dict = {"additional_special_tokens": chatml_tokens}
-#     num_added_tokens = tokenizer.add_special_tokens(special_tokens_dict)
-    
-#     # Resize token embeddings if new tokens were added
-#     if num_added_tokens > 0:
-#         base_model.resize_token_embeddings(len(tokenizer))
-        
-#     # Load adapter
-#     model = PeftModel.from_pretrained(base_model, adapter_path)
-    
-#     # Add padding token if not present
-#     if tokenizer.pad_token is None:
-#         tokenizer.pad_token = tokenizer.eos_token
-#         model.config.pad_token_id = tokenizer.pad_token_id
-    
-#     return model, tokenizer
 
 def setup_pretrained_model_and_tokenizer(
     model_name="TinyLlama/TinyLlama-1.1B-Chat-v1.0",
