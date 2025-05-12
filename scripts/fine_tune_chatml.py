@@ -186,7 +186,10 @@ def train(args):
         warmup_steps=100,
         logging_dir=f"{args.output_dir}/logs",
         logging_steps=50,
+        metric_for_best_model="loss",
+        greater_is_better=False,
         report_to="wandb" if "WANDB_API_KEY" in os.environ else None,
+        load_best_model_at_end=True,
         fp16=True,
     )
 
