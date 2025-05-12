@@ -26,9 +26,9 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Fine-tune a model with LoRA")
     parser.add_argument("--model_name", type=str, default="TinyLlama/TinyLlama-1.1B-Chat-v1.0", 
                         help="Base model to fine-tune")
-    parser.add_argument("--train_file", type=str, default="Data/processed/split1.jsonl", 
+    parser.add_argument("--train_file", type=str, default="Data/processed/fine_tune_40k_cleaned.csv_train.jsonl", 
                         help="Path to training data")
-    parser.add_argument("--val_file", type=str, default="Data/processed/split2.jsonl", 
+    parser.add_argument("--val_file", type=str, default="Data/processed/fine_tune_40k_cleaned.csv_val.jsonl", 
                         help="Path to validation data")
     parser.add_argument("--output_dir", type=str, default="./output", 
                         help="Directory to save model checkpoints")
@@ -252,7 +252,7 @@ def train(args):
     trainer.save_model(f"{args.output_dir}/final")
     tokenizer.save_pretrained(f"{args.output_dir}/final")
     
-    full_repo_name = "ShenghaoYummy/calendar-assistant-v3"
+    full_repo_name = "ShenghaoYummy/calendar-assistant_v3"
 
     # Push to Hub if requested
     if args.push_to_hub and "HF_TOKEN" in os.environ:
