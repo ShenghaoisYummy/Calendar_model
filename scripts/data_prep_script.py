@@ -24,7 +24,7 @@ df = df[need]  # drop everything else
 # Canonicalization functions
 INTENT_MAP = {
     "add": "add", "create": "add",
-    "edit": "edit", "update": "edit",
+    "edit": "update", "update": "update",
     "delete": "delete", "remove": "delete",
     "query": "query", "search": "query",
     "chitchat": "chitchat"  # Added chitchat intent if needed
@@ -80,7 +80,7 @@ class EventJSON(BaseModel):
     title: str = Field(default="")
     intent: str = Field(
         default="",
-        pattern=r"^(add|edit|delete|query|chitchat)$"
+        pattern=r"^(add|update|delete|query|chitchat)$"
     )
     description: str = Field(default="")
     date: str = Field(
