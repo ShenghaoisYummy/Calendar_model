@@ -1104,24 +1104,24 @@ def setup_pretrained_model_and_tokenizer(
     # Load tokenizer from adapter path
     tokenizer = AutoTokenizer.from_pretrained(adapter_path)
 
-    # Ensure ChatML special tokens are present
-    chatml_tokens = ["<|system|>", "<|user|>", "<|assistant|>", "<|end|>"]
-    special_tokens_dict = {"additional_special_tokens": chatml_tokens}
-    num_added_tokens = tokenizer.add_special_tokens(special_tokens_dict)
-    
-    # Load base model
+     # Load base model
     base_model = AutoModelForCausalLM.from_pretrained(
         model_name,
         torch_dtype=torch.float16,
         device_map=device
     )
-    
-    # Load adapter
-    model = PeftModel.from_pretrained(base_model, adapter_path)
+
+    # Ensure ChatML special tokens are present
+    chatml_tokens = ["<|system|>", "<|user|>", "<|assistant|>", "<|end|>"]
+    special_tokens_dict = {"additional_special_tokens": chatml_tokens}
+    num_added_tokens = tokenizer.add_special_tokens(special_tokens_dict)
     
     # Resize token embeddings if new tokens were added
     if num_added_tokens > 0:
-        model.resize_token_embeddings(len(tokenizer))
+        base_model.resize_token_embeddings(len(tokenizer))
+        
+    # Load adapter
+    model = PeftModel.from_pretrained(base_model, adapter_path)
     
     # Add padding token if not present
     if tokenizer.pad_token is None:
