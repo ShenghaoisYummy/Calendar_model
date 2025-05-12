@@ -50,7 +50,7 @@ def parse_args():
                         help="LoRA alpha parameter")
     parser.add_argument("--lora_dropout", type=float, default=0.05, 
                         help="LoRA dropout rate")
-    parser.add_argument("--push_to_hub", action="store_true", 
+    parser.add_argument("--push_to_hub", action="store_true", default=True,
                         help="Push model to Hugging Face Hub")
     parser.add_argument("--hub_model_id", type=str, default=None, 
                         help="Model ID for Hugging Face Hub")
