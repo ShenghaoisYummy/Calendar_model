@@ -17,8 +17,8 @@ Formatting rules
 • Field constraints  
   • "intent"    ∈ {"add", "edit", "delete", "query", "chitchat"}  
   • "date"    RFC 3339 date only, e.g. "2025‑07‑21" (no time component).  
-  • "startTime"/"endTime" RFC 3339 time‑of‑day with zone,  
-   e.g. "14:30:00+10:00".  
+  • "startTime"/"endTime" RFC 3339 time‑of‑day,  
+   e.g. "14:30:00".  
    – If the request gives only one time, put it in "startTime" and leave  
    "endTime" an empty string.  
    – If no times are given for an all‑day event, leave both empty.  

@@ -861,11 +861,11 @@ def load_data(file_path: str) -> List[Dict[str, Any]]:
     """Load data from a file (JSON, JSONL, or CSV)"""
     if file_path.endswith('.json'):
         with open(file_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            data = json.load(f)
     
     elif file_path.endswith('.csv'):
         df = pd.read_csv(file_path)
-        return df.to_dict('records')
+        data = df.to_dict('records')
         
     elif file_path.endswith('.jsonl'):
         data = []
@@ -873,10 +873,60 @@ def load_data(file_path: str) -> List[Dict[str, Any]]:
             for line in f:
                 if line.strip():
                     data.append(json.loads(line))
-        return data
-        
     else:
         raise ValueError(f"Unsupported file format: {file_path}")
+    
+    # Process data to extract user text and reference JSON
+    processed_data = []
+    for item in data:
+        if 'text' in item:
+            # Extract user text from the ChatML format
+            text = item['text']
+            
+            # Extract the user query part
+            user_text = ""
+            if "<|user|>" in text:
+                user_parts = text.split("<|user|>")
+                if len(user_parts) > 1:
+                    user_text = user_parts[1].split("<|assistant|>")[0].strip()
+            
+            # If we couldn't extract user text, use the original text
+            if not user_text:
+                user_text = text
+                
+            # Create a new item with just the user text
+            new_item = {'text': user_text}
+            
+            # Extract reference JSON from assistant part
+            if "<|assistant|>" in text:
+                assistant_part = text.split("<|assistant|>")[1].strip()
+                if "<|end|>" in assistant_part:
+                    assistant_part = assistant_part.split("<|end|>")[0].strip()
+                
+                # Try to parse the JSON
+                try:
+                    reference_json = json.loads(assistant_part)
+                    # Add reference fields to the new item
+                    for key, value in reference_json.items():
+                        new_item[key] = value
+                except json.JSONDecodeError:
+                    pass
+            
+            processed_data.append(new_item)
+        else:
+            processed_data.append(item)
+    
+    # Print sample of processed data
+    if processed_data:
+        print("\n===== PROCESSED TEST DATA SAMPLE =====")
+        for i in range(min(3, len(processed_data))):
+            print(f"\nSample {i+1}:")
+            print(f"User text: {processed_data[i].get('text', '')[:100]}...")
+            for key, value in processed_data[i].items():
+                if key != 'text':
+                    print(f"{key}: {value}")
+    
+    return processed_data
 
 def get_model_predictions(model, tokenizer, prompts: List[str], system_prompt: str = None, 
                          max_new_tokens: int = 256, batch_size: int = 8) -> List[str]:
@@ -887,14 +937,28 @@ def get_model_predictions(model, tokenizer, prompts: List[str], system_prompt: s
     for i in tqdm(range(0, len(prompts), batch_size), desc="Generating predictions"):
         batch_prompts = prompts[i:i+batch_size]
         
-        # Format inputs with ChatML format if system prompt is provided
-        if system_prompt:
-            formatted_prompts = [
-                f"<|system|>\n{system_prompt}\n<|user|>\n{prompt}\n<|assistant|>" 
-                for prompt in batch_prompts
-            ]
-        else:
-            formatted_prompts = [f"<|user|>\n{prompt}\n<|assistant|>" for prompt in batch_prompts]
+        # Format inputs with ChatML format
+        formatted_prompts = []
+        for prompt in batch_prompts:
+            # Remove any existing system or assistant tags from the user prompt
+            clean_prompt = prompt
+            if "<|system|>" in clean_prompt:
+                clean_prompt = clean_prompt.split("<|system|>")[-1]
+            if "<|user|>" in clean_prompt:
+                clean_prompt = clean_prompt.split("<|user|>")[-1]
+            if "<|assistant|>" in clean_prompt:
+                clean_prompt = clean_prompt.split("<|assistant|>")[0]
+            
+            # Clean up any remaining tags
+            clean_prompt = re.sub(r'<\|.*?\|>', '', clean_prompt).strip()
+            
+            # Format with proper ChatML tags
+            if system_prompt:
+                formatted_prompt = f"<|system|>\n{system_prompt}\n<|user|>\n{clean_prompt}\n<|assistant|>"
+            else:
+                formatted_prompt = f"<|user|>\n{clean_prompt}\n<|assistant|>"
+            
+            formatted_prompts.append(formatted_prompt)
         
         # Print input length for debugging
         if i == 0:
@@ -907,7 +971,7 @@ def get_model_predictions(model, tokenizer, prompts: List[str], system_prompt: s
         with torch.no_grad():
             outputs = model.generate(
                 **inputs,
-                max_new_tokens=max_new_tokens,  # Use max_new_tokens instead of max_length
+                max_new_tokens=max_new_tokens,
                 num_return_sequences=1,
                 do_sample=False
             )
