@@ -557,8 +557,21 @@ class CalendarEventEvaluator:
     def evaluate_field(self, field_name: str, reference: Any, prediction: Any) -> Dict[str, float]:
         """Evaluate a single field based on its type"""
         # Handle None values
-        if reference is None and prediction is None:
-            return {'skipped': True}
+        if reference is None:
+            reference = ""
+        if prediction is None:
+            prediction = ""
+            
+        # For empty strings or None values in both reference and prediction, consider it a match
+        if (reference == "" or reference is None) and (prediction == "" or prediction is None):
+            if field_name in self.field_types['text']:
+                return {'exact_match': 1.0, 'rouge_l': 1.0, 'bleu': 1.0, 'combined_score': 1.0}
+            elif field_name in self.field_types['location']:
+                return {'exact_match': 1.0, 'partial_match': 1.0, 'word_overlap': 1.0, 'overall': 1.0}
+            elif field_name in self.field_types['type']:
+                return {'match': 1.0}
+            else:
+                return {'overall': 1.0}
         
         # Determine field type and use appropriate evaluation
         if field_name in self.field_types['text']:
@@ -645,6 +658,14 @@ class CalendarEventEvaluator:
         # Define fields to evaluate based on intent type
         fields_to_evaluate = set(reference.keys()) | set(prediction.keys())
         
+        # Remove 'text' field from fields to evaluate
+        if 'text' in fields_to_evaluate:
+            fields_to_evaluate.remove('text')
+            
+        # Add 'response' field if missing in reference but present in prediction
+        if 'response' not in reference and 'response' in prediction:
+            reference['response'] = ""  # Use empty string for missing response field
+        
         # For CANCEL intent, only evaluate intent, date, startTime, and response
         if reference_intent == 'cancel':
             fields_to_evaluate = {'intent', 'date', 'startTime', 'response', 'title'}
@@ -718,9 +739,38 @@ class CalendarEventEvaluator:
         if len(references) != len(predictions):
             raise ValueError(f"Number of references ({len(references)}) does not match number of predictions ({len(predictions)})")
             
+        # Process references to extract actual event data
+        processed_references = []
+        for ref in references:
+            # Check if the reference contains a text field with JSON data
+            if 'text' in ref and '<|assistant|>' in ref['text']:
+                # Extract the JSON part after <|assistant|> tag
+                assistant_part = ref['text'].split('<|assistant|>')[1].strip()
+                # Remove <|end|> tag if present
+                if '<|end|>' in assistant_part:
+                    assistant_part = assistant_part.split('<|end|>')[0].strip()
+                
+                # Try to parse the JSON
+                try:
+                    event_data = json.loads(assistant_part)
+                    processed_references.append(event_data)
+                    continue
+                except json.JSONDecodeError:
+                    pass
+                    
+            # If we couldn't extract JSON or there's no text field, use the reference as is
+            processed_references.append(ref)
+            
+        # Print the first few references and predictions for debugging
+        print("\n===== REFERENCE VS PREDICTION COMPARISON =====")
+        for i in range(min(3, len(processed_references))):
+            print(f"\nSample {i+1}:")
+            print(f"Reference: {json.dumps(processed_references[i], indent=2)}")
+            print(f"Prediction: {json.dumps(predictions[i], indent=2)}")
+            
         # Evaluate each event
         event_results = []
-        for ref, pred in zip(references, predictions):
+        for ref, pred in zip(processed_references, predictions):
             result = self.evaluate_event(ref, pred)
             event_results.append(result)
             
@@ -733,7 +783,7 @@ class CalendarEventEvaluator:
         intent_references = []
         intent_predictions = []
         
-        for ref, pred, result in zip(references, predictions, event_results):
+        for ref, pred, result in zip(processed_references, predictions, event_results):
             if 'error' in result:
                 continue
                 
@@ -767,7 +817,7 @@ class CalendarEventEvaluator:
                     
         # Calculate aggregate statistics
         aggregate_results = {
-            'num_events': len(references),
+            'num_events': len(processed_references),
             'completeness': {
                 'mean': float(np.mean(completeness_scores)) if completeness_scores else 0.0,
                 'std': float(np.std(completeness_scores)) if completeness_scores else 0.0
@@ -1021,7 +1071,29 @@ def print_detailed_results(references, predictions, results):
     print("\nDetailed Results:")
     print("=" * 80)
     
-    for i, (ref, pred, event_result) in enumerate(zip(references, predictions, results['event_results'])):
+    # Process references to extract actual event data
+    processed_references = []
+    for ref in references:
+        # Check if the reference contains a text field with JSON data
+        if 'text' in ref and '<|assistant|>' in ref['text']:
+            # Extract the JSON part after <|assistant|> tag
+            assistant_part = ref['text'].split('<|assistant|>')[1].strip()
+            # Remove <|end|> tag if present
+            if '<|end|>' in assistant_part:
+                assistant_part = assistant_part.split('<|end|>')[0].strip()
+            
+            # Try to parse the JSON
+            try:
+                event_data = json.loads(assistant_part)
+                processed_references.append(event_data)
+                continue
+            except json.JSONDecodeError:
+                pass
+                
+        # If we couldn't extract JSON or there's no text field, use the reference as is
+        processed_references.append(ref)
+    
+    for i, (ref, pred, event_result) in enumerate(zip(processed_references, predictions, results['event_results'])):
         print(f"\nSample {i+1}:")
         print("-" * 40)
         
@@ -1034,7 +1106,7 @@ def print_detailed_results(references, predictions, results):
         # Print reference
         print("Reference:")
         for field, value in ref.items():
-            if field not in ['_id', '_source']:  # Skip internal fields
+            if field not in ['_id', '_source', 'text']:  # Skip internal fields and text field
                 print(f"  {field}: {value}")
         
         # Print prediction
