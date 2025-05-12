@@ -1131,27 +1131,26 @@ def process_model_outputs(raw_outputs: List[str]) -> List[Dict[str, Any]]:
 #     return model, tokenizer
 
 def setup_pretrained_model_and_tokenizer(
-    model_name: str = "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-    device: str = "cuda" if torch.cuda.is_available() else "cpu",
-    adapter_path: str = "ShenghaoYummy/calendar-assistant_v3" 
+    model_name="TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+    adapter_path="ShenghaoYummy/calendar-assistant_v3",
+    device="cuda" if torch.cuda.is_available() else "cpu"
 ):
-    # 首先从adapter_path加载tokenizer
+    # 1. Load the tokenizer that *matches the adapter* (adapter repo always has one)
     tokenizer = AutoTokenizer.from_pretrained(adapter_path)
-    
-    # 然后加载基础模型，但使用adapter_path的tokenizer配置
+
+    # 2. Load the base model *without forcing a new vocab size*
     base_model = AutoModelForCausalLM.from_pretrained(
         model_name,
         torch_dtype=torch.float16,
-        device_map=device,
-        vocab_size=len(tokenizer)  # 使用适配器的词汇表大小
+        device_map=device
     )
-    
-    # 确保词汇表大小匹配
-    base_model.resize_token_embeddings(len(tokenizer))
-    
-    # 然后加载适配器
+
+    # 3. Resize to **exactly** the adapter’s vocab length *before* attaching LoRA
+    base_model.resize_token_embeddings(len(tokenizer))   # 32 000 → 32 000, no change
+
+    # 4. Attach LoRA deltas
     model = PeftModel.from_pretrained(base_model, adapter_path)
-    
+
     return model, tokenizer
 
 def print_detailed_results(references, predictions, results):
