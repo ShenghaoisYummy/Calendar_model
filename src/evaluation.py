@@ -272,6 +272,7 @@ class CalendarEventExtractor:
     def extract_from_json(self, text: str) -> Dict[str, Any]:
         """Extract a calendar event from JSON output"""
         if not text:
+            print("DEBUG: Empty text provided to extract_from_json")
             return {}
             
         # Try to find a JSON object in the text
@@ -281,6 +282,7 @@ class CalendarEventExtractor:
         if match:
             try:
                 json_text = match.group(1)
+                print(f"DEBUG: Found JSON text: {json_text[:100]}...")
                 result = json.loads(json_text)
                 
                 # Map 'type' to 'intent' if 'type' exists but 'intent' doesn't
@@ -288,9 +290,12 @@ class CalendarEventExtractor:
                     result['intent'] = result.pop('type')
                 
                 return result
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
+                print(f"DEBUG: JSON decode error: {e}")
                 # If it's not valid JSON, fall back to regex extraction
                 pass
+        else:
+            print(f"DEBUG: No JSON pattern found in text: {text[:100]}...")
                 
         # If no valid JSON found or extraction failed, use regex as fallback
         return self.extract_from_text(text)
@@ -298,6 +303,7 @@ class CalendarEventExtractor:
     def extract_from_text(self, text: str) -> Dict[str, Any]:
         """Extract a calendar event from unstructured text using regex"""
         if not text:
+            print("DEBUG: Empty text provided to extract_from_text")
             return {}
             
         result = {}
@@ -323,7 +329,8 @@ class CalendarEventExtractor:
         # Map 'type' to 'intent' if 'type' exists but 'intent' doesn't
         if 'type' in result and 'intent' not in result:
             result['intent'] = result.pop('type')
-                
+        
+        print(f"DEBUG: Extracted {len(result)} fields using regex: {', '.join(result.keys())}")
         return result
 
 class CalendarEventEvaluator:
@@ -803,11 +810,14 @@ def get_model_predictions(model, tokenizer, prompts: List[str], system_prompt: s
     for i in tqdm(range(0, len(prompts), batch_size), desc="Generating predictions"):
         batch_prompts = prompts[i:i+batch_size]
         
-        # Format inputs with system prompt if provided
+        # Format inputs with ChatML format if system prompt is provided
         if system_prompt:
-            formatted_prompts = [f"{system_prompt}\n\nUser: {prompt}" for prompt in batch_prompts]
+            formatted_prompts = [
+                f"<|system|>\n{system_prompt}\n<|user|>\n{prompt}\n<|assistant|>" 
+                for prompt in batch_prompts
+            ]
         else:
-            formatted_prompts = batch_prompts
+            formatted_prompts = [f"<|user|>\n{prompt}\n<|assistant|>" for prompt in batch_prompts]
         
         inputs = tokenizer(formatted_prompts, padding=True, truncation=True, return_tensors="pt")
         inputs = {k: v.to(model.device) for k, v in inputs.items()}
@@ -822,11 +832,31 @@ def get_model_predictions(model, tokenizer, prompts: List[str], system_prompt: s
             
         batch_predictions = tokenizer.batch_decode(outputs, skip_special_tokens=True)
         
-        # Extract only the generated part (remove prompt)
+        # Print debug info for first batch
+        if i == 0:
+            print("\n===== DEBUGGING PROMPT AND RESPONSE EXTRACTION =====")
+            for j, (prompt, full_output) in enumerate(zip(formatted_prompts[:1], batch_predictions[:1])):
+                print(f"\nSample {j+1}:")
+                print(f"Formatted prompt: {repr(prompt)}")
+                print(f"Full model output: {repr(full_output)}")
+        
+        # Extract only the assistant's response part
         for prompt, prediction in zip(formatted_prompts, batch_predictions):
             if prediction.startswith(prompt):
-                prediction = prediction[len(prompt):].strip()
-            predictions.append(prediction)
+                # Extract content after <|assistant|> tag
+                assistant_part = prediction[len(prompt):].strip()
+                # Remove <|end|> tag if present
+                if "<|end|>" in assistant_part:
+                    assistant_part = assistant_part.split("<|end|>")[0].strip()
+                predictions.append(assistant_part)
+            else:
+                # Fallback: try to find the assistant's response using regex
+                match = re.search(r"<\|assistant\|>(.*?)(?:<\|end\|>|$)", prediction, re.DOTALL)
+                if match:
+                    predictions.append(match.group(1).strip())
+                else:
+                    # If all else fails, just return the raw output
+                    predictions.append(prediction)
     
     return predictions
 
@@ -866,16 +896,40 @@ def process_model_outputs(raw_outputs: List[str]) -> List[Dict[str, Any]]:
     extractor = CalendarEventExtractor()
     processed_outputs = []
     
-    for output in raw_outputs:
-        event = extractor.extract_from_json(output)
-        processed_outputs.append(event)
+    print("\n===== RAW MODEL OUTPUTS =====")
+    for i, output in enumerate(raw_outputs):
+        print(f"\n--- Prediction {i+1} ---")
+        print(f"Raw output: {repr(output)}")
         
+        # Clean up the output - remove any ChatML tags that might remain
+        output = re.sub(r'<\|.*?\|>', '', output).strip()
+        
+        # Try to extract JSON from the output
+        event = extractor.extract_from_json(output)
+        
+        # If extraction failed (empty dict), try a more aggressive approach
+        if not event:
+            # Look for anything that resembles a JSON object
+            json_pattern = r'(\{[^{}]*"[^{}]*"[^{}]*\})'
+            match = re.search(json_pattern, output)
+            if match:
+                try:
+                    json_text = match.group(1)
+                    event = json.loads(json_text)
+                except json.JSONDecodeError:
+                    # If that fails, fall back to regex extraction
+                    event = extractor.extract_from_text(output)
+        
+        print(f"Extracted event: {json.dumps(event, ensure_ascii=False)}")
+        processed_outputs.append(event)
+    
+    print("\n===== END OF RAW OUTPUTS =====\n")
     return processed_outputs
 
 def setup_pretrained_model_and_tokenizer(
     model_name: str = "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
     device: str = "cuda" if torch.cuda.is_available() else "cpu",
-    adapter_path: str = "ShenghaoYummy/calendar-assistant_v2" 
+    adapter_path: str = "ShenghaoYummy/calendar-assistant_v3" 
 ) -> tuple:
     """
     Setup model and tokenizer for training.
@@ -888,14 +942,27 @@ def setup_pretrained_model_and_tokenizer(
     Returns:
         tuple: (model, tokenizer)
     """
+    # Load tokenizer from adapter path
     tokenizer = AutoTokenizer.from_pretrained(adapter_path)
-
+    
+    # Ensure ChatML special tokens are present
+    chatml_tokens = ["<|system|>", "<|user|>", "<|assistant|>", "<|end|>"]
+    special_tokens_dict = {"additional_special_tokens": chatml_tokens}
+    num_added_tokens = tokenizer.add_special_tokens(special_tokens_dict)
+    
+    # Load base model
     base_model = AutoModelForCausalLM.from_pretrained(
         model_name,
         torch_dtype=torch.float16,
         device_map=device
     )
+    
+    # Load adapter
     model = PeftModel.from_pretrained(base_model, adapter_path)
+    
+    # Resize token embeddings if new tokens were added
+    if num_added_tokens > 0:
+        model.resize_token_embeddings(len(tokenizer))
     
     # Add padding token if not present
     if tokenizer.pad_token is None:

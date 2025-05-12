@@ -93,6 +93,17 @@ def main():
         system_prompt=system_prompt, 
         batch_size=args.batch_size
     )
+    
+    # Print sample of raw outputs for debugging
+    print("\nSample of raw outputs:")
+    for i in range(min(3, len(raw_outputs))):
+        print(f"\nSample {i+1}:")
+        print(f"Prompt: {prompts[i][:100]}...")
+        print(f"Raw output: {raw_outputs[i]}")
+        print("-" * 50)
+    
+    # Process outputs
+    print("\nProcessing model outputs...")
     predictions = process_model_outputs(raw_outputs)
     
     # Evaluate predictions
