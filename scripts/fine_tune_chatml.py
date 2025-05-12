@@ -90,15 +90,32 @@ def prepare_dataset(tokenizer, file_path, max_length=1024):
                 continue
                 
             # Tokenize the full text
-            encodings = tokenizer(text, truncation=True, max_length=max_length)
+            encodings = tokenizer(
+                text, 
+                truncation=True, 
+                max_length=max_length,
+                padding="max_length",  # Add padding to ensure consistent lengths
+                return_tensors=None    # Return as Python lists, not tensors
+            )
             
             # Tokenize just the prompt part to determine its length
-            prompt_tokens = tokenizer(text[:assistant_idx]).input_ids
+            prompt_tokens = tokenizer(text[:assistant_idx], add_special_tokens=False).input_ids
             n_prompt = len(prompt_tokens)
             
             # Create labels: -100 for prompt tokens (no loss), actual token IDs for response tokens
-            labels = [-100] * n_prompt + encodings["input_ids"][n_prompt:]
+            labels = [-100] * min(n_prompt, max_length)  # Ensure n_prompt doesn't exceed max_length
             
+            # Add the remaining labels, ensuring we don't exceed max_length
+            remaining_length = max_length - len(labels)
+            if remaining_length > 0 and n_prompt < len(encodings["input_ids"]):
+                labels.extend(encodings["input_ids"][n_prompt:min(len(encodings["input_ids"]), n_prompt + remaining_length)])
+            
+            # Pad labels to max_length with -100
+            if len(labels) < max_length:
+                labels.extend([-100] * (max_length - len(labels)))
+            elif len(labels) > max_length:
+                labels = labels[:max_length]
+                
             tokenized_inputs.append({
                 "input_ids": encodings["input_ids"],
                 "attention_mask": encodings["attention_mask"],
@@ -106,6 +123,9 @@ def prepare_dataset(tokenizer, file_path, max_length=1024):
             })
         
         # Convert list of dicts to dict of lists
+        if not tokenized_inputs:
+            return {"input_ids": [], "attention_mask": [], "labels": []}
+        
         result = {k: [d[k] for d in tokenized_inputs] for k in tokenized_inputs[0].keys()}
         return result
     
@@ -193,7 +213,7 @@ def train(args):
         fp16=True,
     )
 
-       # Create early stopping callback
+    # Create early stopping callback
     early_stopping_callback = EarlyStoppingCallback(
         early_stopping_patience=5,
         early_stopping_threshold=0.001
@@ -205,9 +225,23 @@ def train(args):
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
-        data_collator=DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False),
+        data_collator=DataCollatorForLanguageModeling(
+            tokenizer=tokenizer, 
+            mlm=False,
+            pad_to_multiple_of=8  # Ensure padding to multiple of 8 for efficiency
+        ),
         callbacks=[early_stopping_callback]
     )
+    
+    # Validate datasets before training
+    print(f"Training dataset size: {len(train_dataset)}")
+    print(f"Validation dataset size: {len(eval_dataset)}")
+    
+    # Check a sample to verify shape
+    sample = train_dataset[0]
+    print(f"Sample input_ids length: {len(sample['input_ids'])}")
+    print(f"Sample attention_mask length: {len(sample['attention_mask'])}")
+    print(f"Sample labels length: {len(sample['labels'])}")
     
     # Start training
     print("Starting training...")
