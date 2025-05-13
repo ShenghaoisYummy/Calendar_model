@@ -80,6 +80,12 @@ class DateTimeUtils:
                 dt_str = str(dt_str)
             except:
                 return False
+                
+        # Check if it's a time-only string with timezone (like "14:30:00+00:00")
+        time_only_pattern = r'^\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$'
+        if re.match(time_only_pattern, dt_str):
+            return True
+            
         try:
             dateutil.parser.isoparse(dt_str)
             return True
