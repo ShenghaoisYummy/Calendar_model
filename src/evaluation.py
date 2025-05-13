@@ -138,6 +138,12 @@ class DateTimeUtils:
                 dt2 = str(dt2)
             except:
                 return False
+        
+        # Check if these are time-only strings (like "14:30:00+00:00")
+        time_only_pattern = r'^\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$'
+        if re.match(time_only_pattern, dt1) and re.match(time_only_pattern, dt2):
+            # For time-only strings, just compare them directly
+            return dt1 == dt2
                 
         try:
             parsed1 = dateutil.parser.isoparse(dt1)
@@ -148,6 +154,25 @@ class DateTimeUtils:
             return parsed1 == parsed2
         except (ValueError, TypeError):
             return False
+            
+    @staticmethod
+    def compare_time_strings(time1: str, time2: str) -> bool:
+        """Compare two time strings, ignoring date components if present"""
+        if not time1 or not time2:
+            return False
+            
+        # Extract just the time part if it's a full datetime
+        t1 = DateTimeUtils.extract_time_from_iso(time1) if time1 else ""
+        t2 = DateTimeUtils.extract_time_from_iso(time2) if time2 else ""
+        
+        # If extraction failed, use original strings
+        if not t1:
+            t1 = time1
+        if not t2:
+            t2 = time2
+            
+        # Compare the time strings
+        return t1 == t2
             
     @staticmethod
     def convert_to_iso_format(date_str: str, time_str: str = None) -> str:
@@ -492,13 +517,22 @@ class CalendarEventEvaluator:
         # Check time part separately
         ref_time = self.dt_utils.extract_time_from_iso(ref_iso) if ref_iso else ""
         pred_time = self.dt_utils.extract_time_from_iso(prediction) if prediction else ""
-        time_match = ref_time == pred_time
+        time_match = self.dt_utils.compare_time_strings(ref_time, pred_time)
+        
+        # Calculate overall score - give partial credit if time matches even if full datetime doesn't
+        overall_score = 0.0
+        if valid_format:
+            if value_match:
+                overall_score = 1.0
+            elif time_match:
+                # If time part matches but full datetime doesn't, give partial credit
+                overall_score = 0.5
         
         return {
             'format_valid': 1.0 if valid_format else 0.0,
             'value_match': 1.0 if value_match else 0.0,
             'time_match': 1.0 if time_match else 0.0,
-            'overall': 1.0 if (valid_format and value_match) else 0.0
+            'overall': overall_score
         }
         
     def evaluate_category_field(self, reference: str, prediction: str) -> Dict[str, float]:
@@ -1100,7 +1134,7 @@ def setup_pretrained_model_and_tokenizer(
         device_map=device
     )
 
-    # 3. Resize to **exactly** the adapter’s vocab length *before* attaching LoRA
+    # 3. Resize to **exactly** the adapter's vocab length *before* attaching LoRA
     base_model.resize_token_embeddings(len(tokenizer))   # 32 000 → 32 000, no change
 
     # 4. Attach LoRA deltas
