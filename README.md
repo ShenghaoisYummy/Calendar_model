@@ -17,33 +17,65 @@ The Calendar Model project provides an end-to-end solution for:
 Calendar_model/
 ├── data/                    # Data directory
 │   ├── raw/                 # Original unprocessed data
-│   ├── processed/           # Intermediate processed data
-│   └── cleaned/             # Final cleaned data ready for training
+│   ├── processed/           # Processed data in JSONL format with ChatML wrapping
+│   └── cleaned/             # Cleaned data ready for training
 ├── src/                     # Source code
-│   ├── data_prep.py         # Data preprocessing functions
-│   ├── fine_tune.py         # Model fine-tuning utilities
-│   ├── evaluation.py        # Evaluation metrics and functions
-│   └── upload_to_huggingface.py  # Utilities for model sharing
+│   ├── fine_tune.py         # Model fine-tuning utilities with ChatML support
+│   └── evaluation.py        # Evaluation metrics and functions
 ├── scripts/                 # Executable scripts
-│   ├── data_prep_script.py  # Script to run data preprocessing
-│   ├── fine_tune_script.py  # Script to run model fine-tuning
-│   └── evaluation_script.py # Script to evaluate model performance
+│   ├── data_prep_script.py  # Script to prepare data with ChatML formatting
+│   ├── fine_tune_script.py  # Script to run model fine-tuning with LoRA
+│   └── evaluation_fine_tuned_script.py # Script to evaluate model performance
 ├── constants.py             # Global constants and configuration
 └── requirements.txt         # Project dependencies
 ```
 
 ## How the Model Works
 
-### 1. Data Preprocessing
+### 1. Data Preprocessing with ChatML
 
-Before training the model, we need to clean and format the data. The data preprocessing involves:
+The data preprocessing pipeline has been enhanced to support ChatML formatting, which improves the model's ability to understand context and generate appropriate responses:
 
 - **Cleaning emoji texts**: Removing emojis and other special characters
-- **Converting dates and times**: Standardizing to ISO 8601 format (YYYY-MM-DDThh:mm:ssZ)
-- **Handling missing values**: Ensuring consistency in how missing data is represented
+- **Converting dates and times**: Standardizing to ISO 8601 format
+  (YYYY-MM-DDThh:mm:ssZ)
+- **Handling missing values**: Ensuring consistency in how missing data is
+  represented
 - **Formatting**: Making sure all data follows a consistent structure
 
-This preprocessing is crucial for teaching the model to understand and generate consistent calendar information.
+- **Canonicalization**: All fields are standardized for consistency
+
+  - **Dates**: Converted to ISO 8601 format (YYYY-MM-DD)
+  - **Times**: Standardized to ISO format with timezone (HH:MM:SS+TZ:TZ)
+  - **Intents**: Mapped to standard values (add, update, delete, query, chitchat)
+  - **Boolean values**: Normalized to 0 or 1
+
+- **Validation with Pydantic**: Each record is validated using a Pydantic model to ensure schema compliance
+
+  - All fields must match their expected patterns (e.g., dates must be YYYY-MM-DD)
+  - Records failing validation are dropped to maintain data quality
+
+- **ChatML Formatting**: Each example is wrapped in ChatML format with system, user, and assistant tags
+
+  - `<|system|>`: Contains the system prompt that guides the model's behavior
+  - `<|user|>`: Contains the user's query
+  - `<|assistant|>`: Contains the expected JSON response
+  - `<|end|>`: Marks the end of the assistant's response
+
+- **JSON Response Structure**: Each assistant response is formatted as a single-line JSON object with a consistent key order:
+  ```json
+  {
+    "title": "Event Title",
+    "intent": "add",
+    "description": "Event description",
+    "date": "2025-07-19",
+    "startTime": "13:00:00+00:00",
+    "endTime": "14:00:00+00:00",
+    "location": "Location",
+    "isAllDay": 0,
+    "response": "Confirmation message"
+  }
+  ```
 
 To run data preprocessing:
 
@@ -51,25 +83,41 @@ To run data preprocessing:
 python scripts/data_prep_script.py
 ```
 
-This will process the data from the `data/processed/` directory and save the cleaned versions to `data/cleaned/`.
+This will process the data and save the ChatML-formatted JSONL files to the `data/processed/` directory.
 
-### 2. Fine-tuning the Model
+### 2. Fine-tuning with LoRA and ChatML
 
 We use a technique called "Low-Rank Adaptation (LoRA)" to fine-tune a pre-trained language model. This allows us to efficiently adapt the model to our calendar task without having to retrain the entire model.
 
-The fine-tuning process:
+The fine-tuning process has been enhanced to leverage ChatML formatting and Parameter-Efficient Fine-Tuning (PEFT) with LoRA:
 
 - Starts with a pre-trained model (TinyLlama/TinyLlama-1.1B-Chat-v1.0)
-- Adds special parameter-efficient adapters that update a small subset of model parameters
-- Trains on our calendar data to teach the model to understand and generate calendar information
+- Adds special parameter-efficient adapters that update a small subset of model 
+parameters
+- Trains on our calendar data to teach the model to understand and generate 
+calendar information
+
+- **ChatML Special Tokens**: The tokenizer is extended with special tokens for ChatML
+
+  - `<|system|>`, `<|user|>`, `<|assistant|>`, and `<|end|>` tokens help the model understand dialogue structure
+
+- **Loss Masking**: Training loss is calculated only on the assistant's response tokens
+
+  - This focuses the learning on generating correct responses rather than memorizing prompts
+  - Implemented using a custom dataset preparation function that masks prompt tokens with `-100`
+
+- **Low-Rank Adaptation (LoRA)**: Efficient fine-tuning that updates only a small subset of parameters
+  - Targets specific attention modules (q_proj, k_proj, v_proj, o_proj for LLaMA-based models)
+  - Significantly reduces memory requirements and training time
+  - Allows fine-tuning larger models on consumer hardware
 
 To fine-tune the model:
 
 ```bash
-python scripts/fine_tune_script.py --dataset_path data/cleaned/fine_tune_schedule_response_en_40k_cleaned.csv --num_epochs 3
+python scripts/fine_tune_script.py --train_file data/processed/fine_tune_40k_cleaned.csv_train.jsonl --val_file data/processed/fine_tune_40k_cleaned.csv_val.jsonl --num_train_epochs 3
 ```
 
-The fine-tuned model will be saved to the specified output directory.
+The fine-tuned model will be saved to the specified output directory and can optionally be pushed to Hugging Face Hub.
 
 ### 3. Evaluation
 
@@ -189,7 +237,7 @@ For example:
 - For CANCEL intents: title (0.5), date (0.4) are most important
 - For QUERY intents: response (0.5) has the highest weight
 
-In the example with an overall score of 0.1064, the score is calculated by:
+An important issue to note is the JSON extraction pattern used in the evaluation process. The current implementation has two different regex patterns for extracting JSON from model outputs:
 
 1. Multiplying each field's score by its weight
 2. Summing these weighted scores
@@ -219,15 +267,15 @@ python scripts/evaluation_script.py --test_data data/cleaned/evaluation_schedule
 
 This will generate detailed evaluation results with metrics for each sample and aggregated statistics.
 
-### 4. Model Sharing
+### 7. Model Sharing
 
 Once you're satisfied with your model's performance, you can share it on Hugging Face Hub:
 
 ```bash
-python scripts/fine_tune_script.py --push_to_hub --hf_model_name your-model-name
+python scripts/fine_tune_script.py --push_to_hub --hub_model_id your-username/calendar-assistant
 ```
 
-This will upload your model to Hugging Face Hub, making it accessible to others. You'll need to set the `HF_API_TOKEN` environment variable with your Hugging Face token.
+This will upload your model to Hugging Face Hub, making it accessible to others. You'll need to set the `HF_TOKEN` environment variable with your Hugging Face token.
 
 ## Usage Tips
 
@@ -235,21 +283,40 @@ This will upload your model to Hugging Face Hub, making it accessible to others.
 2. **System prompts**: Using a good system prompt can significantly improve model performance
 3. **Evaluation**: Always evaluate on a separate test set to get an accurate measure of performance
 4. **Fine-tuning parameters**: Experiment with learning rate, batch size, and number of epochs
+5. **ChatML formatting**: Proper formatting of system, user, and assistant messages is crucial for good results
+6. **Loss masking**: Ensure that loss is only calculated on the assistant's response to focus learning
 
 ## Troubleshooting
 
 If your model performs poorly (e.g., low overall score), check:
 
-1. **Data preprocessing**: Ensure your data is properly cleaned and formatted
+1. **Data preprocessing**: Ensure your data is properly cleaned, formatted with ChatML, and validated
 2. **Model loading**: Make sure the tokenizer and model settings match between training and evaluation
 3. **Training parameters**: Try different learning rates, batch sizes, or more training epochs
 4. **System prompt**: A well-crafted system prompt can significantly improve performance
+5. **JSON extraction**: Check that the model outputs are being correctly parsed during evaluation
+6. **Response field**: Ensure the model is generating the response field, which is important for evaluation
+
+### Common Issues and Solutions
+
+1. **Missing response field in evaluation**:
+
+   - Problem: The regex pattern used to extract JSON doesn't capture the response field
+   - Solution: Update the regex pattern in `src/evaluation.py` to include the response field
+
+2. **Empty response field in model outputs**:
+
+   - Problem: The model is trained on data where the response field is empty
+   - Solution: Ensure your training data includes meaningful responses, not just empty strings
+
+3. **Inconsistent JSON structure**:
+   - Problem: The model generates JSON with fields in different orders
+   - Solution: Use the make_json function to ensure consistent field ordering in training data
 
 ## Security Notes
 
 - Do not hardcode API tokens in your scripts
 - Use environment variables for sensitive information like API keys
-- Be careful when sharing fine-tuned models as they may contain training data patterns
 
 ## Next Steps for Improvement
 
