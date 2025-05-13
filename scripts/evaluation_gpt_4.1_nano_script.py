@@ -81,11 +81,6 @@ def main():
         print(f"Using system prompt: {system_prompt[:50]}...")
     else:
         print("No system prompt will be used")
-    
-   
-    print(f"Loading model")
-    # # Load pretrained model and tokenizer
-    model, tokenizer = setup_pretrained_model_and_tokenizer()
 
     # Generate predictions
     print("Generating predictions...")

@@ -5,7 +5,7 @@ from datetime import datetime
 import emoji
 import os
 from pathlib import Path
-from src.data_prep import clean_dataset
+from data_cleaning import clean_dataset
 
 def main():
     # Set paths

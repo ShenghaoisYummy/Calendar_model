@@ -25,7 +25,7 @@ from constants import (
     WANDB_PROJECT_NAME,
     DEFAULT_HF_ARGS
 )
-from src.data_prep import prepare_dataset
+from data_cleaning import prepare_dataset
 from src.upload_to_huggingface import push_to_hub
 
 def main():
