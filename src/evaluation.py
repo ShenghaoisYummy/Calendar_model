@@ -519,20 +519,15 @@ class CalendarEventEvaluator:
         pred_time = self.dt_utils.extract_time_from_iso(prediction) if prediction else ""
         time_match = self.dt_utils.compare_time_strings(ref_time, pred_time)
         
-        # Calculate overall score - give partial credit if time matches even if full datetime doesn't
+        # Calculate overall score based on field name
+        # This will be set by evaluate_field based on the field name
         overall_score = 0.0
-        if valid_format:
-            if value_match:
-                overall_score = 1.0
-            elif time_match:
-                # If time part matches but full datetime doesn't, give partial credit
-                overall_score = 0.5
         
         return {
             'format_valid': 1.0 if valid_format else 0.0,
             'value_match': 1.0 if value_match else 0.0,
             'time_match': 1.0 if time_match else 0.0,
-            'overall': overall_score
+            'overall': overall_score  # This will be replaced in evaluate_field
         }
         
     def evaluate_category_field(self, reference: str, prediction: str) -> Dict[str, float]:
@@ -613,7 +608,27 @@ class CalendarEventEvaluator:
         elif field_name in self.field_types['date']:
             return self.evaluate_date_field(reference, prediction)
         elif field_name in self.field_types['datetime']:
-            return self.evaluate_datetime_field(reference, prediction)
+            # Get the base evaluation results
+            result = self.evaluate_datetime_field(reference, prediction)
+            
+            # Apply different scoring logic based on field name
+            if field_name == 'startTime':
+                # For startTime: Only give full credit if format is valid and value matches
+                if result['format_valid'] == 1.0 and result['value_match'] == 1.0:
+                    result['overall'] = 1.0
+                elif result['format_valid'] == 1.0 and result['time_match'] == 1.0:
+                    # Partial credit if time part matches but full datetime doesn't
+                    result['overall'] = 0.5
+                else:
+                    result['overall'] = 0.0
+            elif field_name == 'endTime':
+                # For endTime: Each metric contributes 1/3 to the overall score
+                format_score = result['format_valid'] * (1/3)
+                value_score = result['value_match'] * (1/3)
+                time_score = result['time_match'] * (1/3)
+                result['overall'] = format_score + value_score + time_score
+            
+            return result
         elif field_name in self.field_types['location']:
             return self.evaluate_location_field(reference, prediction)
         elif field_name in self.field_types['type']:
