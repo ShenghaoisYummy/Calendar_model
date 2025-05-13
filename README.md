@@ -32,7 +32,7 @@ Calendar_model/
 
 ## How the Model Works
 
-### 1. Data Preprocessing with ChatML
+### 1. Data Preprocessing
 
 The data preprocessing pipeline has been enhanced to support ChatML formatting, which improves the model's ability to understand context and generate appropriate responses:
 
@@ -92,10 +92,10 @@ We use a technique called "Low-Rank Adaptation (LoRA)" to fine-tune a pre-traine
 The fine-tuning process has been enhanced to leverage ChatML formatting and Parameter-Efficient Fine-Tuning (PEFT) with LoRA:
 
 - Starts with a pre-trained model (TinyLlama/TinyLlama-1.1B-Chat-v1.0)
-- Adds special parameter-efficient adapters that update a small subset of model 
-parameters
-- Trains on our calendar data to teach the model to understand and generate 
-calendar information
+- Adds special parameter-efficient adapters that update a small subset of model
+  parameters
+- Trains on our calendar data to teach the model to understand and generate
+  calendar information
 
 - **ChatML Special Tokens**: The tokenizer is extended with special tokens for ChatML
 
