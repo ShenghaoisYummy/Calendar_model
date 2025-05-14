@@ -413,10 +413,10 @@ class CalendarEventEvaluator:
             'description': 0.10,
             'date': 0.50,
             'startTime': 0.50,
-            'endTime': 0.20,
+            'endTime': 0.30,
             'location': 0.40,
             'intent': 0.50,
-            'response': 0.10
+            'response': 0.30
         }
         
     def evaluate_text_field(self, reference: str, prediction: str) -> Dict[str, float]:
