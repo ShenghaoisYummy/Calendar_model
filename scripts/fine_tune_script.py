@@ -1,3 +1,4 @@
+import sys
 import os
 import torch
 import argparse
@@ -13,6 +14,8 @@ from transformers import (
 from peft import get_peft_model, LoraConfig, TaskType
 import wandb
 from huggingface_hub import HfApi
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.fine_tune import setup_tokenizer, prepare_dataset, setup_model_for_training
 # Set environment variables from constants if available
@@ -55,7 +58,7 @@ def parse_args():
                         help="Push model to Hugging Face Hub")
     parser.add_argument("--hub_model_id", type=str, default=None, 
                         help="Model ID for Hugging Face Hub")
-    parser.add_argument("--wandb_project", type=str, default="calendar-assistant-v4", 
+    parser.add_argument("--wandb_project", type=str, default="calendar-assistant-v6", 
                         help="Weights & Biases project name")
     return parser.parse_args()
 
