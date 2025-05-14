@@ -149,9 +149,10 @@ We evaluate the model's performance using a comprehensive set of metrics:
    - **Time fields** (startTime, endTime):
 
      - **Format validity**: Whether the predicted time is in a valid ISO format (1.0 if valid, 0.0 if not)
-     - **Value match**: Whether the entire datetime matches the reference (1.0 if match, 0.0 if not)
+     - **Value match**: Whether the entire datetime matches the reference (1.0 if match, 0.0 if not) - not used in scoring
      - **Time match**: Whether just the time part (ignoring date) matches (1.0 if match, 0.0 if not)
-     - **Overall**: 1.0 only if both format is valid AND complete datetime values match
+     - **Overall**: For startTime: 1.0 if format is valid AND time matches, 0.5 if only format is valid
+       For endTime: Weighted score of format*valid * (1/3) + time*match * (2/3)
 
    - **Location field**:
      - **Exact match**: 1.0 if the prediction exactly matches the reference
@@ -216,21 +217,21 @@ For dates, the model needs to get both the format right and the actual date valu
 ```
 startTime:
   - format_valid: 1.000   (Binary: 1.0 if time is in valid ISO format, 0.0 otherwise)
-  - value_match: 0.000    (Binary: 1.0 if complete datetime matches, 0.0 otherwise)
+  - value_match: 0.000    (Binary: 1.0 if complete datetime matches, 0.0 otherwise - not used in scoring)
   - time_match: 1.000     (Binary: 1.0 if just the time part matches, 0.0 otherwise)
-  - overall: 0.000        (Binary: 1.0 only if both format_valid AND value_match are 1.0)
+  - overall: 1.000        (Binary: 1.0 if both format_valid AND time_match are 1.0, 0.5 if only format_valid is 1.0)
 
 endTime:
   - format_valid: 1.000   (Binary: 1.0 if time is in valid ISO format, 0.0 otherwise)
-  - value_match: 0.000    (Binary: 1.0 if complete datetime matches, 0.0 otherwise)
+  - value_match: 0.000    (Binary: 1.0 if complete datetime matches, 0.0 otherwise - not used in scoring)
   - time_match: 1.000     (Binary: 1.0 if just the time part matches, 0.0 otherwise)
-  - overall: 0.667        (Weighted score: format_valid * (1/3) + value_match * (1/3) + time_match * (1/3))
+  - overall: 0.667        (Weighted score: format_valid * (1/3) + time_match * (2/3))
 ```
 
 For time fields, the evaluation differs between startTime and endTime:
 
-- **startTime**: Requires exact format and value match for full credit (1.0), with partial credit (0.5) if only the time part matches
-- **endTime**: Uses a more flexible weighted average of all three metrics (format validity, exact value match, and time part match), each contributing equally (1/3) to the overall score
+- **startTime**: Requires both valid format and time match for full credit (1.0), with partial credit (0.5) if only the format is valid
+- **endTime**: Uses a weighted average where format validity contributes 1/3 and time match contributes 2/3 to the overall score
 
 This difference reflects that startTime precision is more critical, while endTime can be more flexibly evaluated with partial credit for each correct aspect.
 

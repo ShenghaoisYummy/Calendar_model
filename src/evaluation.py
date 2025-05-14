@@ -619,20 +619,25 @@ class CalendarEventEvaluator:
             
             # Apply different scoring logic based on field name
             if field_name == 'startTime':
-                # For startTime: Only give full credit if format is valid and value matches
-                if result['format_valid'] == 1.0 and result['value_match'] == 1.0:
+                # For startTime: Only consider format_valid and time_match
+                if result['format_valid'] == 1.0 and result['time_match'] == 1.0:
                     result['overall'] = 1.0
-                elif result['format_valid'] == 1.0 and result['time_match'] == 1.0:
-                    # Partial credit if time part matches but full datetime doesn't
+                elif result['format_valid'] == 1.0:
+                    # Partial credit if format is valid but time doesn't match
                     result['overall'] = 0.5
                 else:
                     result['overall'] = 0.0
+                # Remove value_match from the output
+                if 'value_match' in result:
+                    del result['value_match']
             elif field_name == 'endTime':
-                # For endTime: Each metric contributes 1/3 to the overall score
+                # For endTime: format_valid * (1/3) + time_match * (2/3)
                 format_score = result['format_valid'] * (1/3)
-                value_score = result['value_match'] * (1/3)
-                time_score = result['time_match'] * (1/3)
-                result['overall'] = format_score + value_score + time_score
+                time_score = result['time_match'] * (2/3)
+                result['overall'] = format_score + time_score
+                # Remove value_match from the output
+                if 'value_match' in result:
+                    del result['value_match']
             
             return result
         elif field_name in self.field_types['location']:
