@@ -2,7 +2,6 @@ import sys
 import os
 import torch
 import argparse
-from datasets import load_dataset
 from transformers import (
     AutoTokenizer, 
     AutoModelForCausalLM,
