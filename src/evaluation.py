@@ -605,6 +605,9 @@ class CalendarEventEvaluator:
                 return {'exact_match': 1.0, 'partial_match': 1.0, 'word_overlap': 1.0, 'overall': 1.0}
             elif field_name in self.field_types['type']:
                 return {'match': 1.0}
+            elif field_name in self.field_types['datetime']:
+                # For datetime fields, return 0.0 when both are empty
+                return {'format_valid': 0.0, 'time_match': 0.0, 'overall': 0.0}
             else:
                 return {'overall': 1.0}
         
