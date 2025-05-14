@@ -162,22 +162,36 @@ class DateTimeUtils:
             return False
             
     @staticmethod
+    def normalize_time_for_comparison(time_str: str) -> str:
+        """Extract and normalize time for comparison, handling timezone differences"""
+        if not time_str:
+            return ""
+            
+        # Check if it's a time-only string with timezone (like "14:30:00+00:00")
+        time_only_pattern = r'^(\d{2}:\d{2}:\d{2})[+-]\d{2}:\d{2}$'
+        match = re.match(time_only_pattern, time_str)
+        if match:
+            return match.group(1)  # Return just HH:MM:SS part
+            
+        # Try to parse as full ISO datetime
+        try:
+            dt = dateutil.parser.isoparse(time_str)
+            return dt.strftime("%H:%M:%S")
+        except (ValueError, TypeError):
+            # If parsing fails, return the original string
+            return time_str
+            
+    @staticmethod
     def compare_time_strings(time1: str, time2: str) -> bool:
-        """Compare two time strings, ignoring date components if present"""
+        """Compare two time strings, ignoring date components and timezone if present"""
         if not time1 or not time2:
             return False
             
-        # Extract just the time part if it's a full datetime
-        t1 = DateTimeUtils.extract_time_from_iso(time1) if time1 else ""
-        t2 = DateTimeUtils.extract_time_from_iso(time2) if time2 else ""
+        # Normalize both time strings for comparison
+        t1 = DateTimeUtils.normalize_time_for_comparison(time1)
+        t2 = DateTimeUtils.normalize_time_for_comparison(time2)
         
-        # If extraction failed, use original strings
-        if not t1:
-            t1 = time1
-        if not t2:
-            t2 = time2
-            
-        # Compare the time strings
+        # Compare the normalized time strings
         return t1 == t2
             
     @staticmethod
@@ -520,10 +534,14 @@ class CalendarEventEvaluator:
         # Compare the datetime values
         value_match = self.dt_utils.compare_iso_datetimes(ref_iso, prediction) if (ref_iso and prediction) else False
         
-        # Check time part separately
-        ref_time = self.dt_utils.extract_time_from_iso(ref_iso) if ref_iso else ""
-        pred_time = self.dt_utils.extract_time_from_iso(prediction) if prediction else ""
-        time_match = self.dt_utils.compare_time_strings(ref_time, pred_time)
+        # Check time part separately - compare the ISO time strings directly
+        time_match = self.dt_utils.compare_time_strings(ref_iso, prediction) if (ref_iso and prediction) else False
+        
+        # Debug log for time comparison
+        print(f"DEBUG: Time comparison for {ref_iso} vs {prediction}")
+        print(f"DEBUG: Normalized time1: {self.dt_utils.normalize_time_for_comparison(ref_iso)}")
+        print(f"DEBUG: Normalized time2: {self.dt_utils.normalize_time_for_comparison(prediction)}")
+        print(f"DEBUG: Time match result: {time_match}")
         
         # Calculate overall score based on field name
         # This will be set by evaluate_field based on the field name
