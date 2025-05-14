@@ -165,26 +165,37 @@ class DateTimeUtils:
     def normalize_time_for_comparison(time_str: str) -> str:
         """Extract and normalize time for comparison, handling timezone differences"""
         if not time_str:
+            print(f"DEBUG: Empty time string received for normalization")
             return ""
+            
+        print(f"DEBUG: normalize_time_for_comparison input: '{time_str}' (type: {type(time_str)})")
             
         # Check if it's a time-only string with timezone (like "14:30:00+00:00")
         time_only_pattern = r'^(\d{2}:\d{2}:\d{2})[+-]\d{2}:\d{2}$'
         match = re.match(time_only_pattern, time_str)
         if match:
-            return match.group(1)  # Return just HH:MM:SS part
+            result = match.group(1)  # Return just HH:MM:SS part
+            print(f"DEBUG: Time-only pattern match, returning: '{result}'")
+            return result
             
         # Try to parse as full ISO datetime
         try:
             dt = dateutil.parser.isoparse(time_str)
-            return dt.strftime("%H:%M:%S")
-        except (ValueError, TypeError):
+            result = dt.strftime("%H:%M:%S")
+            print(f"DEBUG: ISO parse successful, returning: '{result}'")
+            return result
+        except (ValueError, TypeError) as e:
             # If parsing fails, return the original string
+            print(f"DEBUG: ISO parse failed with error: {str(e)}, returning original: '{time_str}'")
             return time_str
             
     @staticmethod
     def compare_time_strings(time1: str, time2: str) -> bool:
         """Compare two time strings, ignoring date components and timezone if present"""
+        print(f"DEBUG: compare_time_strings called with: '{time1}' vs '{time2}'")
+        
         if not time1 or not time2:
+            print(f"DEBUG: One of the time strings is empty, returning False")
             return False
             
         # Normalize both time strings for comparison
@@ -192,7 +203,9 @@ class DateTimeUtils:
         t2 = DateTimeUtils.normalize_time_for_comparison(time2)
         
         # Compare the normalized time strings
-        return t1 == t2
+        result = t1 == t2
+        print(f"DEBUG: Comparison result: '{t1}' == '{t2}': {result}")
+        return result
             
     @staticmethod
     def convert_to_iso_format(date_str: str, time_str: str = None) -> str:
@@ -641,18 +654,23 @@ class CalendarEventEvaluator:
             # Apply different scoring logic based on field name
             if field_name == 'startTime':
                 # For startTime: Only consider format_valid and time_match
+                print(f"DEBUG: startTime evaluation for ref='{reference}' and pred='{prediction}'")
                 if result['format_valid'] == 1.0 and result['time_match'] == 1.0:
                     result['overall'] = 1.0
+                    print(f"DEBUG: startTime - Both format_valid and time_match are 1.0, setting overall to 1.0")
                 else:
                     result['overall'] = 0.0
+                    print(f"DEBUG: startTime - Not both valid, setting overall to 0.0. format_valid={result['format_valid']}, time_match={result['time_match']}")
                 # Remove value_match from the output
                 if 'value_match' in result:
                     del result['value_match']
             elif field_name == 'endTime':
                 # For endTime: format_valid * (1/3) + time_match * (2/3)
+                print(f"DEBUG: endTime evaluation for ref='{reference}' and pred='{prediction}'")
                 format_score = result['format_valid'] * (1/3)
                 time_score = result['time_match'] * (2/3)
                 result['overall'] = format_score + time_score
+                print(f"DEBUG: endTime - Calculated overall as {format_score} + {time_score} = {result['overall']}")
                 # Remove value_match from the output
                 if 'value_match' in result:
                     del result['value_match']
