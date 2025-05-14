@@ -625,9 +625,6 @@ class CalendarEventEvaluator:
                 # For startTime: Only consider format_valid and time_match
                 if result['format_valid'] == 1.0 and result['time_match'] == 1.0:
                     result['overall'] = 1.0
-                elif result['format_valid'] == 1.0:
-                    # Partial credit if format is valid but time doesn't match
-                    result['overall'] = 0.5
                 else:
                     result['overall'] = 0.0
                 # Remove value_match from the output
