@@ -18,4 +18,6 @@ scipy
 emoji>=2.0.0 
 openai
 pydantic>=2.0.0
+flask
+pyngrok
 huggingface_hub
