@@ -1,0 +1,15 @@
+-e .[dev]
+pytest>=7.0.0
+pytest-cov>=4.0.0
+black>=23.1.0
+isort>=5.12.0
+flake8>=6.0.0
+mypy>=1.0.0
+jupyter>=1.0.0
+pre-commit>=3.0.0
+tox>=4.0.0
+sphinx>=6.0.0
+sphinx-rtd-theme>=1.2.0
+twine>=4.0.0
+mkdocs>=1.4.0
+mkdocs-material>=9.0.0 

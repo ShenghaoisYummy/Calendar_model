@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, ValidationError
 from constants import DEFAULT_SYSTEM_PROMPT
 
 # Paths
-RAW_NAME = "evaluation_10k_cleaned.csv"
+RAW_NAME = "calendar_dataset_evaluation_10k_cleaned.csv"
 RAW = "data/cleaned/" + RAW_NAME
 OUT_DIR = pathlib.Path("data/processed")
 OUT_DIR.mkdir(parents=True,exist_ok=True)
@@ -150,7 +150,7 @@ df["chatml"] = df.apply(wrap, axis=1)
 
 # print("Preprocessing complete!") 
 
-# Write all examples to a single JSONL file
+#Write all examples to a single JSONL file
 print("Writing all examples to a single JSONL…")
 output_path = OUT_DIR / f"{RAW_NAME}_.jsonl"
 with open(output_path, "w", encoding="utf-8") as f:
