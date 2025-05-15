@@ -20,7 +20,7 @@ Formatting rules
   • "startTime"/"endTime" RFC 3339 time‑of‑day with timezone offset, e.g. "14:30:00+00:00".  
    – If the request gives only one time, put it in "startTime" and leave  
    "endTime" an empty string.  
-   – If no times are given for an all‑day event, leave both empty.  
+   – If no times are given in the request, leave startTime and endTime both empty.  
   • "isAllDay" 0 for timed events, 1 for all‑day events.  
   • "response" A polite confirmation sentence to the user.
 
