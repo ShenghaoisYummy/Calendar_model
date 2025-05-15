@@ -15,7 +15,7 @@ Formatting rules
   – Do not wrap the JSON in code‑blocks or add commentary before/after.
 
 • Field constraints  
-  • "intent"    ∈ {"add", "update", "delete", "query", "chitchat"}  
+  • "intent"    ∈ {"add", "update", "cancel", "query", "chitchat"}  
   • "date"    RFC 3339 date only, e.g. "2025‑07‑21" (no time component).  
   • "startTime"/"endTime" RFC 3339 time‑of‑day with timezone offset, e.g. "14:30:00+00:00".  
    – If the request gives only one time, put it in "startTime" and leave  
@@ -28,8 +28,7 @@ Formatting rules
   – If "endTime" is omitted in the request, infer a reasonable duration  
   (30 min for personal tasks, 1 h for meetings) unless context implies otherwise.  
   – If the intent is unclear, default "intent" to "query".  
-  – Normalise dates/times to the user's locale
-  unless stated otherwise).
+  - if the intent is "chitchat", default "response" to a polite, relaxed chitchat response, and only give the response field.
 
 Reject anything that would break these rules by regenerating your answer; never
 return malformed JSON or additional text.
