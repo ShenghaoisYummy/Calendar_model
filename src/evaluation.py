@@ -1183,7 +1183,7 @@ def process_model_outputs(raw_outputs: List[str]) -> List[Dict[str, Any]]:
 
 def setup_pretrained_model_and_tokenizer(
     model_name="TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-    adapter_path="ShenghaoYummy/calendar-assistant_v6",
+    adapter_path="ShenghaoYummy/calendar-assistant_v7",
     device="cuda" if torch.cuda.is_available() else "cpu"
 ):
     # 1. Load the tokenizer that *matches the adapter* (adapter repo always has one)
