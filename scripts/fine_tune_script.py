@@ -57,7 +57,7 @@ def parse_args():
                         help="Push model to Hugging Face Hub")
     parser.add_argument("--hub_model_id", type=str, default=None, 
                         help="Model ID for Hugging Face Hub")
-    parser.add_argument("--wandb_project", type=str, default="calendar-assistant-v6", 
+    parser.add_argument("--wandb_project", type=str, default="calendar-assistant-v7", 
                         help="Weights & Biases project name")
     return parser.parse_args()
 
@@ -144,7 +144,7 @@ def train(args):
     trainer.save_model(f"{args.output_dir}/final")
     tokenizer.save_pretrained(f"{args.output_dir}/final")
     
-    full_repo_name = "ShenghaoYummy/calendar-assistant_v6"
+    full_repo_name = "ShenghaoYummy/calendar-assistant_v7"
 
     # Push to Hub if requested
     if args.push_to_hub and "HF_TOKEN" in os.environ:
