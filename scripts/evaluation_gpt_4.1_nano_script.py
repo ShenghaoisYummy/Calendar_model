@@ -26,12 +26,12 @@ from src.evaluation import (
     print_detailed_results
 )
 from src.fine_tune import setup_model_and_tokenizer
-from constants import (
-    DEFAULT_SYSTEM_PROMPT, 
+from constants import ( 
     EVALUATION_DATA_PATH, 
     DOWNLOAD_MODEL_PATH,
     ENV_WANDB_API_KEY,
-    WANDB_EVAL_PROJECT_NAME
+    WANDB_EVAL_PROJECT_NAME,
+    GPT_SYSTEM_PROMPT
 )
 
 def main():
@@ -43,7 +43,7 @@ def main():
     parser.add_argument("--wandb_project", type=str, default=WANDB_EVAL_PROJECT_NAME, help="W&B project name")
     parser.add_argument("--batch_size", type=int, default=8, help="Batch size for inference")
     parser.add_argument("--max_samples", type=int, default=None, help="Maximum number of test samples to evaluate")
-    parser.add_argument("--system_prompt", type=str, default=DEFAULT_SYSTEM_PROMPT, help="Custom system prompt (or 'none' to disable)")
+    parser.add_argument("--system_prompt", type=str, default=GPT_SYSTEM_PROMPT, help="Custom system prompt (or 'none' to disable)")
     parser.add_argument("--max_new_tokens", type=int, default=256, help="Maximum number of new tokens to generate")
     args = parser.parse_args()
     
